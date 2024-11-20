@@ -1,21 +1,42 @@
 import streamlit as st
+import snowflake.connector
 import pandas as pd
 
 # Attempt to import Snowflake, but don't fail if it's not available
-try:
-    from snowflake.snowpark.context import get_active_session
-    snowflake_available = True
-except ImportError:
-    snowflake_available = False
+# try:
+#     from snowflake.snowpark.context import get_active_session
+#     snowflake_available = True
+# except ImportError:
+#     snowflake_available = False
 
-def get_snowflake_session():
-    if snowflake_available:
-        try:
-            return get_active_session()
-        except Exception as e:
-            st.error(f"Failed to connect to Snowflake: {str(e)}")
-    return None
+# def get_snowflake_session():
+#     if snowflake_available:
+#         try:
+#             return get_active_session()
+#         except Exception as e:
+#             st.error(f"Failed to connect to Snowflake: {str(e)}")
+#     return None
 
+conn = snowflake.connector.connect(
+    user=st.secrets["snowflake"]["user"],
+    password=st.secrets["snowflake"]["password"],
+    account=st.secrets["snowflake"]["account"],
+    database=st.secrets["snowflake"]["database"],
+    warehouse=st.secrets["snowflake"]["warehouse"],
+    schema=st.secrets["snowflake"]["schema"]
+)
+
+@st.cache_data(ttl=600)
+def run_query(query):
+    with conn.cursor() as cur:
+        cur.execute(query)
+        return cur.fetchall()
+    try: 
+        rows = run_query("SELECT current_version()")
+        st.write(f"Snowflake version: {rows[0][0]}")
+    except Exception as e:
+        st.error(f"Connection error: {e}")
+        
 def main():
     st.set_page_config(page_title="Finicity-like App", layout="wide")
     
