@@ -2,37 +2,15 @@ import streamlit as st
 import snowflake.connector
 import pandas as pd
 
-# Attempt to import Snowflake, but don't fail if it's not available
-# try:
-#     from snowflake.snowpark.context import get_active_session
-#     snowflake_available = True
-# except ImportError:
-#     snowflake_available = False
+# Move st.set_page_config() to the top, right after imports
+st.set_page_config(page_title="Finicity-like App", layout="wide")
 
-# def get_snowflake_session():
-#     if snowflake_available:
-#         try:
-#             return get_active_session()
-#         except Exception as e:
-#             st.error(f"Failed to connect to Snowflake: {str(e)}")
-#     return None
-
-@st.cache_resource
-def init_connection():
-    return snowflake.connector.connect(
-        user=st.secrets["SF_USER"],
-        password=st.secrets["SF_PASSWORD"],
-        account=st.secrets["SF_ACCOUNT"],
-        database=st.secrets["SF_DATABASE"],
-        schema=st.secrets["SF_SCHEMA"], 
-        warehouse=st.secrets["SF_WAREHOUSE"],
-        role=st.secrets["SF_ROLE"] 
-    )
-
-conn = init_connection()
-        
-def main():
-    st.set_page_config(page_title="Finicity-like App", layout="wide")
+#Attempt to import Snowflake, but don't fail if it's not available
+try:
+    from snowflake.snowpark.context import get_active_session
+    snowflake_available = True
+except ImportError:
+    snowflake_available = False
     
     # Define the taskbar
     taskbar = st.sidebar.radio(
