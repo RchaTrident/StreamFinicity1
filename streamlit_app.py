@@ -2,34 +2,26 @@ import streamlit as st
 import snowflake.connector
 import pandas as pd
 
-# Move st.set_page_config() to the top, right after imports
+# Move st.set_page_config() to the top
 st.set_page_config(page_title="Finicity-like App", layout="wide")
 
-#Attempt to import Snowflake, but don't fail if it's not available
+# Flag to track Snowflake availability
+snowflake_available = False
+
+# Try to import Snowflake modules
 try:
     from snowflake.snowpark.context import get_active_session
     snowflake_available = True
 except ImportError:
     snowflake_available = False
-    
-    # Define the taskbar
-    taskbar = st.sidebar.radio(
-        "Navigation",
-        ("Customers", "Authentication", "Institutions", "Transactions")
-    )
 
-    # Get the current Snowflake session
-    session = get_snowflake_session()
-
-    # Display content based on taskbar selection
-    if taskbar == "Authentication":
-        show_authentication(session)
-    elif taskbar == "Customers":
-        show_customers(session)
-    elif taskbar == "Institutions":
-        show_institutions(session)
-    elif taskbar == "Transactions":
-        show_transactions(session)
+def get_snowflake_session():
+    if snowflake_available:
+        try:
+            return get_active_session()
+        except Exception as e:
+            st.error(f"Failed to connect to Snowflake: {str(e)}")
+    return None
 
 def show_authentication(session):
     st.title("Authentication")
@@ -103,6 +95,26 @@ def show_transactions(session):
     
     st.subheader("Transaction Analysis")
     st.line_chart(transactions.set_index("Date")["Amount"])
+
+def main():
+    # Define the taskbar
+    taskbar = st.sidebar.radio(
+        "Navigation",
+        ("Customers", "Authentication", "Institutions", "Transactions")
+    )
+
+    # Get the current Snowflake session
+    session = get_snowflake_session()
+
+    # Display content based on taskbar selection
+    if taskbar == "Authentication":
+        show_authentication(session)
+    elif taskbar == "Customers":
+        show_customers(session)
+    elif taskbar == "Institutions":
+        show_institutions(session)
+    elif taskbar == "Transactions":
+        show_transactions(session)
 
 if __name__ == "__main__":
     main()
