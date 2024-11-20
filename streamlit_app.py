@@ -2,28 +2,55 @@ import streamlit as st
 import snowflake.connector
 import pandas as pd
 
-# Move st.set_page_config() to the top
 st.set_page_config(page_title="Finicity-like App", layout="wide")
 
-# Flag to track Snowflake availability
-snowflake_available = False
+def init_connection():
+    return snowflake.connector.connect(
+        user=st.secrets["SF_USER"],
+        password=st.secrets["SF_PASSWORD"],
+        account=st.secrets["SF_ACCOUNT"],
+        database=st.secrets["SF_DATABASE"],
+        schema=st.secrets["SF_SCHEMA"], 
+        warehouse=st.secrets["SF_WAREHOUSE"],
+        role=st.secrets["SF_ROLE"] 
+    )
 
-# Try to import Snowflake modules
-try:
-    from snowflake.snowpark.context import get_active_session
-    snowflake_available = True
-except ImportError:
-    snowflake_available = False
+@st.cache_resource
+def get_snowflake_connection():
+    try:
+        return init_connection()
+    except Exception as e:
+        st.error(f"Error connecting to Snowflake: {e}")
+        return None
 
-def get_snowflake_session():
-    if snowflake_available:
-        try:
-            return get_active_session()
-        except Exception as e:
-            st.error(f"Failed to connect to Snowflake: {str(e)}")
-    return None
+def run_query(conn, query):
+    try:
+        return pd.read_sql(query, conn)
+    except Exception as e:
+        st.error(f"Error running query: {e}")
+        return None
 
-def show_authentication(session):
+def main():
+    # Establish Snowflake connection
+    conn = get_snowflake_connection()
+
+    # Define the taskbar
+    taskbar = st.sidebar.radio(
+        "Navigation",
+        ("Customers", "Authentication", "Institutions", "Transactions")
+    )
+
+    # Display content based on taskbar selection
+    if taskbar == "Authentication":
+        show_authentication(conn)
+    elif taskbar == "Customers":
+        show_customers(conn)
+    elif taskbar == "Institutions":
+        show_institutions(conn)
+    elif taskbar == "Transactions":
+        show_transactions(conn)
+
+def show_authentication(conn):
     st.title("Authentication")
     st.write("Securely authenticate users and manage access tokens.")
     
@@ -35,28 +62,27 @@ def show_authentication(session):
             st.success(f"Authenticated as {username}")
     
     with col2:
-        st.subheader("Active Sessions")
-        if session:
-            st.write("Connected to Snowflake")
+        st.subheader("Connection Status")
+        if conn:
+            st.success("Connected to Snowflake")
         else:
-            st.warning("Not connected to Snowflake")
+            st.error("Not connected to Snowflake")
 
-def show_customers(session):
+def show_customers(conn):
     st.title("Customers")
     st.write("Manage customer profiles and account information.")
     
-    if session:
-        # Placeholder for actual Snowflake query
-        customers = pd.DataFrame({
-            "CustomerID": range(1, 6),
-            "Name": ["John Doe", "Jane Smith", "Alice Johnson", "Bob Brown", "Carol White"],
-            "Email": ["john@example.com", "jane@example.com", "alice@example.com", "bob@example.com", "carol@example.com"],
-            "RegisteredDate": pd.date_range(start="2023-01-01", periods=5)
-        })
+    if conn:
+        # Example of running an actual Snowflake query
+        query = "SELECT * FROM YOUR_CUSTOMERS_TABLE LIMIT 10"
+        customers = run_query(conn, query)
+        
+        if customers is not None:
+            st.dataframe(customers)
+        else:
+            st.warning("Unable to fetch customer data")
     else:
-        customers = pd.DataFrame(columns=["CustomerID", "Name", "Email", "RegisteredDate"])
-    
-    st.dataframe(customers)
+        st.error("No Snowflake connection available")
     
     st.subheader("Add New Customer")
     new_name = st.text_input("Name")
@@ -64,57 +90,46 @@ def show_customers(session):
     if st.button("Add Customer"):
         st.success(f"Added customer: {new_name}")
 
-def show_institutions(session):
+def show_institutions(conn):
     st.title("Institutions")
     st.write("View and manage connected financial institutions.")
     
-    institutions = ["Bank of America", "Wells Fargo", "Chase", "Citibank", "Capital One"]
-    for inst in institutions:
-        st.checkbox(inst, key=inst)
+    if conn:
+        # Example of running an actual Snowflake query
+        query = "SELECT * FROM YOUR_INSTITUTIONS_TABLE"
+        institutions = run_query(conn, query)
+        
+        if institutions is not None:
+            for index, row in institutions.iterrows():
+                st.checkbox(row['INSTITUTION_NAME'], key=str(row['INSTITUTION_ID']))
+    else:
+        st.error("No Snowflake connection available")
     
     st.subheader("Add New Institution")
     new_inst = st.text_input("Institution Name")
     if st.button("Add Institution"):
         st.success(f"Added institution: {new_inst}")
 
-def show_transactions(session):
+def show_transactions(conn):
     st.title("Transactions")
     st.write("View and analyze financial transactions.")
     
-    if session:
-        # Placeholder for actual Snowflake query
-        transactions = pd.DataFrame({
-            "Date": pd.date_range(start="2023-01-01", periods=10),
-            "Amount": [100, -50, 200, -75, 300, -100, 150, -200, 250, -150],
-            "Description": ["Deposit", "Groceries", "Salary", "Utilities", "Bonus", "Rent", "Freelance", "Shopping", "Investment", "Dining"]
-        })
+    if conn:
+        # Example of running an actual Snowflake query
+        query = "SELECT * FROM YOUR_TRANSACTIONS_TABLE LIMIT 50"
+        transactions = run_query(conn, query)
+        
+        if transactions is not None:
+            st.dataframe(transactions)
+            
+            # Assuming you have a 'AMOUNT' column for the chart
+            if 'AMOUNT' in transactions.columns:
+                st.subheader("Transaction Analysis")
+                st.line_chart(transactions['AMOUNT'])
+        else:
+            st.warning("Unable to fetch transactions")
     else:
-        transactions = pd.DataFrame(columns=["Date", "Amount", "Description"])
-    
-    st.dataframe(transactions)
-    
-    st.subheader("Transaction Analysis")
-    st.line_chart(transactions.set_index("Date")["Amount"])
-
-def main():
-    # Define the taskbar
-    taskbar = st.sidebar.radio(
-        "Navigation",
-        ("Customers", "Authentication", "Institutions", "Transactions")
-    )
-
-    # Get the current Snowflake session
-    session = get_snowflake_session()
-
-    # Display content based on taskbar selection
-    if taskbar == "Authentication":
-        show_authentication(session)
-    elif taskbar == "Customers":
-        show_customers(session)
-    elif taskbar == "Institutions":
-        show_institutions(session)
-    elif taskbar == "Transactions":
-        show_transactions(session)
+        st.error("No Snowflake connection available")
 
 if __name__ == "__main__":
     main()
