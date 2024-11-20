@@ -17,25 +17,19 @@ import pandas as pd
 #             st.error(f"Failed to connect to Snowflake: {str(e)}")
 #     return None
 
-conn = snowflake.connector.connect(
-    user=st.secrets["snowflake"]["user"],
-    password=st.secrets["snowflake"]["password"],
-    account=st.secrets["snowflake"]["account"],
-    database=st.secrets["snowflake"]["database"],
-    warehouse=st.secrets["snowflake"]["warehouse"],
-    schema=st.secrets["snowflake"]["schema"]
-)
+@st.cache_resource
+def init_connection():
+    return snowflake.connector.connect(
+        user=st.secrets["SF_USER"],
+        password=st.secrets["SF_PASSWORD"],
+        account=st.secrets["SF_ACCOUNT"],
+        database=st.secrets["SF_DATABASE"],
+        schema=st.secrets["SF_SCHEMA"], 
+        warehouse=st.secrets["SF_WAREHOUSE"],
+        role=st.secrets["SF_ROLE"] 
+    )
 
-@st.cache_data(ttl=600)
-def run_query(query):
-    with conn.cursor() as cur:
-        cur.execute(query)
-        return cur.fetchall()
-    try: 
-        rows = run_query("SELECT current_version()")
-        st.write(f"Snowflake version: {rows[0][0]}")
-    except Exception as e:
-        st.error(f"Connection error: {e}")
+conn = init_connection()
         
 def main():
     st.set_page_config(page_title="Finicity-like App", layout="wide")
