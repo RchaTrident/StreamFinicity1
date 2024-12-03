@@ -5,6 +5,8 @@ import json
 from utils.auth import get_token, auth
 from utils.dateconverter import dateConverter
 
+
+
 final = []
 @st.cache_data
 def getCustomerTrans(customerId, fromDate, toDate):

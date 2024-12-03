@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import requests
 import json
+import sys
+sys.path.append('/workspaces/StreamFinicity1')
 from utils.auth import get_token, auth
 
 
@@ -64,3 +66,40 @@ def makeCustomer(ClientName, firstName, lastName):
         st.write(f"Customer already exists!")
     elif 410 <= response.status_code <= 600:
         st.write(f"an error occurred: {response.status_code}")
+
+def getcustomers():
+
+    params = {
+        "type" : "active",
+        "start" : 1,
+        "limit" : 1000
+    }
+    token = get_token()
+    auth['headers']['Finicity-App-Token'] = token
+    response = requests.get(url = f"{auth['url']}/aggregation/v1/customers", headers=auth['headers'], params=params)
+    data = response.json()
+    # return render_template("customers.html", customers=data['customers'])
+    return data
+
+def getCustomerAccounts(customerId):
+    token = get_token()
+    auth['headers']['Finicity-App-Token'] = token
+    response = requests.get(url=f"{auth['url']}/aggregation/v1/customers/{customerId}/accounts", headers = auth['headers'])
+    data = response.json()
+    print(data)
+    accounts = data['accounts']
+    # print(accounts)
+    for account in accounts:
+        if 'detail' in account and account['detail']:
+            formatted_detail = {}
+            for key, value in account['detail'].items():
+                
+                formatted_key = ' '.join(word.capitalize() for word in re.findall('[A-Z]?[a-z]+', key))
+                formatted_detail[formatted_key] = value
+            account['detail'] = formatted_detail
+            
+    # return render_template("accounts.html", accounts=accounts)
+    return accounts
+
+# print(json.dumps(getcustomers(), indent = 2))
+# print(json.dumps(getCustomerAccounts(7030751153))

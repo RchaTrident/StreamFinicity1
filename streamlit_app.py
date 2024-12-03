@@ -14,6 +14,7 @@ from transactions import GetTransactions
 from files import convertToExcel
 from customers import customers
 from institutions import bankSearch
+from statements import statements
 
 customer_id = ""
 start_time = ""
@@ -62,6 +63,7 @@ def main():
             # st.write(mapping_df)
             mapping_dict = mapping_df.to_dict(orient='records')
             # st.info(f"The type of mapping_dict is: {type(mapping_dict)}")
+            st.write(mapping_dict, "here is the mappign dict")
             if mapping_dict:
                 customer_id = mapping_dict[0]["CUSTOMER_ID"]
                 st.write('records found!')
@@ -85,22 +87,14 @@ def main():
         st.write("NOTE: It costs money each time you run a transaction or generate a statement. Please be conservative with how many requests you make! The date range and number of transactions do not matter, it is the frequncy of requests we are charged on.")
         if st.button("Generate Report"):
             if "Statements" in report_type:
-                statements_df = pd.DataFrame()
-                buffer = io.BytesIO()
-                statements_df.to_excel(buffer, index=False)
-                buffer.seek(0)
-                st.download_button(
-                    label="Download Statements Report",
-                    data=buffer,
-                    file_name="statements_report.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
-                st.success("Statements report generated!")
+                statements.getBankStatements(customer_id, mapping_dict, end_time)
             if "Transactions" in report_type:
                 transactions = GetTransactions.getCustomerTrans(customer_id, UnixStart, UnixEnd)
                 transactions = transactions['transactions']
+                
                 if "Allvue" in database1:
                     transactionsConv = GetTransactions.convertTransAllvue(transactions, mapping_dict)
+                    st.write(transactionsConv)
                     convertToExcel.TransToExcel(transactionsConv)
                 if "Geneva" in database1:
                     if "REC" in gen_report_type:
@@ -136,8 +130,12 @@ def main():
                 st.write(customer_ID)
                 
         if st.button("Generate Connect Link"):
-            st.text_input("input the customer Id")
-            connect_link_data = customers.generateConnectLink(7034897269,auth.auth["prod"]["pId"] )
+            customerId = st.text_input("input the customer Id")
+            connect_link_data = customers.generateConnectLink(auth.auth["prod"]["pId"], customerId = 7030015086 )
+            st.write(connect_link_data)
+
+        if st.button("Display All Customers"):
+            connect_link_data = customers.getcustomers()
             st.write(connect_link_data) 
 
 if __name__ == "__main__":

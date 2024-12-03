@@ -35,3 +35,18 @@ def run_query(query, params=None):
     except Exception as e:
         st.error(f"Query Error: {e}")
         return None
+    
+def create_statements_table(fund_name):
+    table_name = f"TESTINGAI.TESTINGAISCHEMA.{fund_name}_statements"
+    create_table_query = f"""
+    CREATE OR REPLACE TABLE {table_name} (
+        id STRING,
+        customer_id STRING,
+        account_id STRING,
+        portfolio STRING,
+        date STRING,
+        file_name STRING,
+        file_content BINARY
+    );
+    """
+    run_query(create_table_query)
