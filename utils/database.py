@@ -41,7 +41,7 @@ def create_statements_table_if_not_exists(fund_name):
     sanitized_fund_name = fund_name.replace(" ", "_")
     table_name = f"TESTINGAI.STATEMENTS.{sanitized_fund_name}_statements"
     create_table_query = f"""
-    CREATE TABLE IF NOT EXISTS "{table_name}" (
+    CREATE TABLE IF NOT EXISTS {table_name} (
         id STRING,
         customer_id STRING,
         account_id STRING,

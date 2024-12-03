@@ -19,22 +19,6 @@ def store_file_in_snowflake(table_name, file_name, file_content, customer_id, ac
     params = (unique_id, customer_id, account_id, portfolio, date, file_name, file_content)
     run_query(query, params)
 
-def create_statements_table_if_not_exists(fund_name):
-    # Replace spaces in the fund name with underscores
-    sanitized_fund_name = fund_name.replace(" ", "_")
-    table_name = f"TESTINGAI.STATEMENTS.{sanitized_fund_name}_statements"
-    create_table_query = f"""
-    CREATE TABLE IF NOT EXISTS "{table_name}" (
-        id STRING,
-        customer_id STRING,
-        account_id STRING,
-        portfolio STRING,
-        date STRING,
-        file_name STRING,
-        file_content BINARY
-    )
-    """
-    run_query(create_table_query)
 
 def getBankStatements(customerId, mapping_dict, end_time):
     get_token()
@@ -48,12 +32,12 @@ def getBankStatements(customerId, mapping_dict, end_time):
         last4 = account["ACCOUNTBANKLAST4"]
         month_day = end_time[5:10]
         file_name = f"{portfolio}_{month_day}_Account_{last4}.pdf"
-        
+        sanitized_portfolio = portfolio.replace(" ", "_")
         # Create the table for the fund if it doesn't exist
-        create_statements_table_if_not_exists(portfolio)
+        create_statements_table_if_not_exists(sanitized_portfolio)
 
         # Sanitize the portfolio name for table usage
-        sanitized_portfolio = portfolio.replace(" ", "_")
+        
         table_name = f"TESTINGAI.STATEMENTS.{sanitized_portfolio}_statements"
         
         query = f"SELECT file_content FROM {table_name} WHERE file_name = %s"
