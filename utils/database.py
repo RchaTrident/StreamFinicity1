@@ -36,10 +36,12 @@ def run_query(query, params=None):
         st.error(f"Query Error: {e}")
         return None
     
-def create_statements_table(fund_name):
-    table_name = f"TESTINGAI.TESTINGAISCHEMA.{fund_name}_statements"
+def create_statements_table_if_not_exists(fund_name):
+    # Replace spaces in the fund name with underscores
+    sanitized_fund_name = fund_name.replace(" ", "_")
+    table_name = f"TESTINGAI.STATEMENTS.{sanitized_fund_name}_statements"
     create_table_query = f"""
-    CREATE OR REPLACE TABLE {table_name} (
+    CREATE TABLE IF NOT EXISTS "{table_name}" (
         id STRING,
         customer_id STRING,
         account_id STRING,
@@ -47,6 +49,6 @@ def create_statements_table(fund_name):
         date STRING,
         file_name STRING,
         file_content BINARY
-    );
+    )
     """
     run_query(create_table_query)
