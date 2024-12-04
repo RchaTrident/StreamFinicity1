@@ -72,7 +72,7 @@ def main():
         end_time = st.text_input("End Time (IT MUST BE IN THIS FORMAT)" , "2024-09-30 23:59:59 UTC")
         UnixStart = dateconverter.human_to_unix(start_time)
         UnixEnd = dateconverter.human_to_unix(end_time)
-
+        ReportName = 
         database1 = st.selectbox("Database", ["Allvue", "Geneva"])
         if "Geneva" in database1:
             gen_report_type = st.selectbox("Geneva Report", ["REC", "ART"])

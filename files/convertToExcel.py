@@ -4,7 +4,7 @@ import pandas as pd
 import io
 
 
-def TransToExcel(input):
+def TransToExcel(input, name):
     transactions_df = pd.DataFrame(input)
     # Sort by transaction date in descending order
     transactions_df = transactions_df.sort_values('Posting Date', ascending=False)
@@ -15,7 +15,7 @@ def TransToExcel(input):
     st.download_button(
         label="Download Transactions Report", 
         data=buffer, 
-        file_name="transactions_report.xlsx", 
+        file_name=f"{name}.xlsx", 
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
     st.success("Transactions report generated!")
