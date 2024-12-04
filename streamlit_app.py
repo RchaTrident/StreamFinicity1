@@ -1,7 +1,4 @@
 import streamlit as st
-
-st.set_page_config(page_title="Finicity-like App", layout="wide")
-
 import pandas as pd
 from snowflake.connector.pandas_tools import write_pandas
 import snowflake.connector
@@ -15,6 +12,9 @@ from files import convertToExcel
 from customers import customers
 from institutions import bankSearch
 from statements import statements
+import uuid
+
+st.set_page_config(page_title="Finicity-like App", layout="wide")
 
 def prettify_name(name):
     """Converts a string like 'customer_transactions_parallaxes_capital_llc' to 'Parallaxes Capital LLC'."""
@@ -39,7 +39,6 @@ def main():
     if st.sidebar.button("Logout"):
         auth.logout()
 
-  
     st.session_state['taskbar_index'] = ["Reports", "Institutions", "Customers"].index(taskbar)
 
     if taskbar == "Reports":
@@ -89,14 +88,14 @@ def main():
                 if "Allvue" in database1:
                     transactionsConv = GetTransactions.convertTransAllvue(transactions, mapping_dict)
                     st.write(transactionsConv)
-                    convertToExcel.TransToExcel(transactionsConv,fileName)
+                    convertToExcel.TransToExcel(transactionsConv, fileName)
                 if "Geneva" in database1:
                     if "REC" in gen_report_type:
                         transactionsConv = GetTransactions.convertTransREC(transactions, mapping_dict)  
-                        convertToExcel.TransToExcel(transactionsConv,fileName)  
+                        convertToExcel.TransToExcel(transactionsConv, fileName)  
                     if "ART" in gen_report_type:
                         transactionsConv = GetTransactions.convertTransART(transactions, mapping_dict)  
-                        convertToExcel.TransToExcel(transactionsConv,fileName)
+                        convertToExcel.TransToExcel(transactionsConv, fileName)
         statements.display_download_buttons()
 
     elif taskbar == "Institutions":
@@ -113,7 +112,7 @@ def main():
     elif taskbar == "Customers":
         customer_ID = ""
         st.title("Add new customer")
-        ClientName = st.text_input("Type client's name here. Ex: ExampleFundPartnersLLC.","ExampleFundPartnersLLC" )
+        ClientName = st.text_input("Type client's name here. Ex: ExampleFundPartnersLLC.", "ExampleFundPartnersLLC")
         firstName = st.text_input("First name of the client or owner of fund. Ex: John", "John")
         lastName = st.text_input("Last name of the client or owner of fund. Ex: Jingleheimer", "Jingleheimer")
 
@@ -126,7 +125,7 @@ def main():
         if st.button("Generate Connect Link"):
             customerId = st.text_input("input the customer Id")
             customerId = "7036039246"
-            connect_link_data = customers.generateConnectLink( customerId,auth.auth["prod"]["pId"])
+            connect_link_data = customers.generateConnectLink(customerId, auth.auth["prod"]["pId"])
             st.write(connect_link_data)
 
         if st.button("Display All Customers"):
