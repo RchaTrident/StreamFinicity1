@@ -66,8 +66,6 @@ def main():
                 st.write("No mapping found for the selected fund.")
         except Exception as e:
             st.error(f"Error fetching data: {e}")
-
-        # Calculate default start and end times based on the current date
         today = datetime.now(timezone.utc)
         first_day_last_month = (today.replace(day=1) - timedelta(days=1)).replace(day=1)
         last_day_last_month = today.replace(day=1) - timedelta(days=1)
@@ -75,11 +73,9 @@ def main():
         start_time_default = first_day_last_month.strftime("%Y-%m-%d 00:00:00 UTC")
         end_time_default = last_day_last_month.strftime("%Y-%m-%d 23:59:59 UTC")
 
-        # Use Streamlit's date input widgets for selecting dates
         start_date = st.date_input("Start Date", value=first_day_last_month)
         end_date = st.date_input("End Date", value=last_day_last_month)
 
-        # Convert selected dates to the required format
         start_time = f"{start_date.strftime('%Y-%m-%d')} 00:00:00 UTC"
         end_time = f"{end_date.strftime('%Y-%m-%d')} 23:59:59 UTC"
 
@@ -95,6 +91,8 @@ def main():
         st.write("NOTE: IF YOU CLICK DOWNLOAD WHILE THE PROGRAM RUNS, IT WILL INTERRUPT. WAIT UNTIL ALL ARE DOWNLOADED")
         
         if st.button("Generate Report"):
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
             if "Statements" in report_type:
                 statements.getBankStatements(customer_id, mapping_dict, end_time)
             if "Transactions" in report_type:
@@ -188,7 +186,7 @@ def main():
             st.write(connect_link_data) 
 
 def display_download_buttons():
-    # Create a grid layout for the download buttons
+
     st.write("### Download Statements")
     cols = st.columns([1, 1, 2])
     cols[0].write("**Portfolio Name**")

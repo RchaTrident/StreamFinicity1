@@ -9,6 +9,10 @@ from datetime import datetime, timedelta, timezone
 import os
 import uuid
 import time
+import streamlit as st
+import pandas as pd
+import base64
+
 
 def store_file_in_snowflake(table_name, file_name, file_content, customer_id, account_id, portfolio, date):
     unique_id = str(uuid.uuid4())
@@ -22,12 +26,10 @@ def store_file_in_snowflake(table_name, file_name, file_content, customer_id, ac
 def get_index_and_month_day(end_time_str):
     end_time = datetime.strptime(end_time_str, "%Y-%m-%d %H:%M:%S %Z")
     today = datetime.now(timezone.utc)
-    
-    # Calculate the difference in months
+
     index = (today.year - end_time.year) * 12 + today.month - end_time.month
-    
-    # Adjust for end-of-month logic
-    if end_time.day < 28:  # Assuming statements are available on the last day of the month
+
+    if end_time.day < 28:
         end_time = end_time.replace(day=1) - timedelta(days=1)
         index += 1
     
@@ -67,19 +69,11 @@ def getBankStatements(customerId, mapping_dict, end_time):
                 with st.spinner(f"Downloading statement for {portfolio}..."):
                     print(f"Calling API for customerId: {customerId}, accountId: {accountId}")
                     response = requests.get(url=f"{auth['url']}/aggregation/v1/customers/{customerId}/accounts/{accountId}/statement", params=params, headers=auth['headers'], timeout=180)
-
                     if response.status_code == 200 and response.headers['Content-Type'] == 'application/pdf':
                         file_content = response.content
                         store_file_in_snowflake(table_name, file_name, file_content, customerId, accountId, portfolio, month_day)
                         st.session_state[file_name] = file_content
                         st.write(f"Bank statement saved as '{file_name}'")
-                        st.download_button(
-                            label=f"Download {os.path.basename(file_name)}",
-                            data=file_content,
-                            file_name=os.path.basename(file_name),
-                            mime="application/pdf",
-                            key=f"download-{file_name}-{i}"
-                        )
                     else:
                         st.write("Failed to get bank statement or the content is not in PDF format.")
             except requests.exceptions.Timeout:
@@ -90,25 +84,35 @@ def getBankStatements(customerId, mapping_dict, end_time):
 
             st.session_state[file_name] = file_content_bytes
             st.write(f"Bank statement already exists as '{file_name}'")
-
-            st.download_button(
-                label=f"Download {os.path.basename(file_name)}",
-                data=file_content_bytes,
-                file_name=os.path.basename(file_name),
-                mime="application/pdf",
-                key=f"download-{file_name}-{i}"
-            )
         
         st.session_state['current_step'] = i + 1
         time.sleep(5)
 
+# def display_download_buttons():
+#     for i, (file_name, file_content) in enumerate(st.session_state.items()):
+#         if isinstance(file_content, (bytes, bytearray)) and file_name.endswith(".pdf"):
+#             st.download_button(
+#                 label=f"Download {os.path.basename(file_name)}",
+#                 data=file_content,
+#                 file_name=os.path.basename(file_name),
+#                 mime="application/pdf",
+#                 key=f"download-{file_name}-{i}"
+#             )
+
+
+
 def display_download_buttons():
+    # Extracting session state items into a list of dictionaries
+    data = []
     for i, (file_name, file_content) in enumerate(st.session_state.items()):
         if isinstance(file_content, (bytes, bytearray)) and file_name.endswith(".pdf"):
-            st.download_button(
-                label=f"Download {os.path.basename(file_name)}",
-                data=file_content,
-                file_name=os.path.basename(file_name),
-                mime="application/pdf",
-                key=f"download-{file_name}-{i}"
-            )
+            # Create a download link
+            b64 = base64.b64encode(file_content).decode()
+            href = f'<a href="data:application/pdf;base64,{b64}" download="{os.path.basename(file_name)}">Download {os.path.basename(file_name)}</a>'
+            data.append({"File Name": file_name, "Download Link": href})
+
+    # Creating a DataFrame from the list of dictionaries
+    df = pd.DataFrame(data)
+
+    # Displaying the DataFrame using st.dataframe or st.table
+    st.write(df.to_html(escape=False), unsafe_allow_html=True)
