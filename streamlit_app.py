@@ -5,7 +5,9 @@ import snowflake.connector
 import requests
 import json
 import io
-import datetime
+from sqlalchemy import create_engine
+from snowflake.sqlalchemy import URL
+from datetime import datetime, timedelta, timezone
 from utils import auth, database, dateconverter
 from transactions import GetTransactions
 from files import convertToExcel
@@ -65,8 +67,22 @@ def main():
         except Exception as e:
             st.error(f"Error fetching data: {e}")
 
-        start_time = st.text_input("Start Time (IT MUST BE IN THIS FORMAT)", "2024-09-01 00:00:00 UTC")
-        end_time = st.text_input("End Time (IT MUST BE IN THIS FORMAT)" , "2024-09-30 23:59:59 UTC")
+        # Calculate default start and end times based on the current date
+        today = datetime.now(timezone.utc)
+        first_day_last_month = (today.replace(day=1) - timedelta(days=1)).replace(day=1)
+        last_day_last_month = today.replace(day=1) - timedelta(days=1)
+
+        start_time_default = first_day_last_month.strftime("%Y-%m-%d 00:00:00 UTC")
+        end_time_default = last_day_last_month.strftime("%Y-%m-%d 23:59:59 UTC")
+
+        # Use Streamlit's date input widgets for selecting dates
+        start_date = st.date_input("Start Date", value=first_day_last_month)
+        end_date = st.date_input("End Date", value=last_day_last_month)
+
+        # Convert selected dates to the required format
+        start_time = f"{start_date.strftime('%Y-%m-%d')} 00:00:00 UTC"
+        end_time = f"{end_date.strftime('%Y-%m-%d')} 23:59:59 UTC"
+
         UnixStart = dateconverter.human_to_unix(start_time)
         UnixEnd = dateconverter.human_to_unix(end_time)
         
@@ -77,6 +93,7 @@ def main():
     
         st.write("NOTE: It costs money each time you run a transaction or generate a statement. Please be conservative with how many requests you make! The date range and number of transactions do not matter, it is the frequency of requests we are charged on.")
         st.write("NOTE: IF YOU CLICK DOWNLOAD WHILE THE PROGRAM RUNS, IT WILL INTERRUPT. WAIT UNTIL ALL ARE DOWNLOADED")
+        
         if st.button("Generate Report"):
             if "Statements" in report_type:
                 statements.getBankStatements(customer_id, mapping_dict, end_time)
@@ -96,19 +113,57 @@ def main():
                     if "ART" in gen_report_type:
                         transactionsConv = GetTransactions.convertTransART(transactions, mapping_dict)  
                         convertToExcel.TransToExcel(transactionsConv, fileName)
+
         statements.display_download_buttons()
 
     elif taskbar == "Institutions":
         st.title("Institutions")
         query = "SELECT * FROM TESTINGAI.INSTITUTIONS.INSTITUTIONS"
-        instList = pd.read_sql(query, conn) 
-        st.write(instList)
+        conn = database.get_snowflake_connection()
+        instList = pd.read_sql(query, conn)
+        instList.rename(columns={'BANK_NAME': 'Bank Name', 'BANK_ID': 'Bank ID', 'BANK_URL': 'Bank URL'}, inplace=True)
+        st.dataframe(
+            instList,
+            column_config={
+                "Bank Name": "Bank Name",
+                "Bank ID": "Bank ID",
+                "Bank URL": st.column_config.LinkColumn("Bank URL"),
+            },
+            use_container_width=True,
+            hide_index=True
+        )
         st.write("Can't find your institution? Search for it here:")
-            
         search_term = st.text_input("type your bank name here")
         if st.button("Search Institution"):
-            st.write(bankSearch.getInstitutions(search_term))
+            search_results = bankSearch.getInstitutions(search_term)
             
+            # Extract relevant fields from the search results
+            institutions_list = search_results['institutions']
+            filtered_results = [
+                {
+                    'id': inst['id'],
+                    'name': inst['name'],
+                    'stateAgg': inst['stateAgg'],
+                    'transAgg': inst['transAgg'],
+                    'urlLogonApp': inst['urlLogonApp']
+                }
+                for inst in institutions_list
+            ]
+            search_results_df = pd.DataFrame(filtered_results)
+            search_results_df.rename(columns={'id': 'Bank ID', 'name': 'Bank Name', 'stateAgg': 'Statement Availability: ', 'transAgg': 'Transactions Availability: ', 'urlLogonApp': 'Bank URL'}, inplace=True)
+
+            st.dataframe(
+                search_results_df,
+                column_config={
+                    "Bank Name": "Bank Name",
+                    "Bank ID": "Bank ID",
+                    "Statement Availability: ": "Statement Availability: ",
+                    "Transactions Availability: ": "Transactions Availability: ",
+                    "Bank URL": st.column_config.LinkColumn("Bank URL")
+                },
+                use_container_width=True,
+                hide_index=True
+            )
     elif taskbar == "Customers":
         customer_ID = ""
         st.title("Add new customer")
@@ -131,6 +186,41 @@ def main():
         if st.button("Display All Customers"):
             connect_link_data = customers.getcustomers()
             st.write(connect_link_data) 
+
+def display_download_buttons():
+    # Create a grid layout for the download buttons
+    st.write("### Download Statements")
+    cols = st.columns([1, 1, 2])
+    cols[0].write("**Portfolio Name**")
+    cols[1].write("**Date**")
+    cols[2].write("**Actions**")
+
+    for i, (file_name, file_content) in enumerate(st.session_state.items()):
+        if isinstance(file_content, (bytes, bytearray)) and file_name.endswith(".pdf"):
+            portfolio_name, date_str, _account_info = file_name.split('_')
+            unique_key_download = f"download-{file_name}-{i}-{uuid.uuid4()}"
+            unique_key_delete = f"delete-{file_name}-{i}-{uuid.uuid4()}"
+            unique_key_undo = f"undo-{file_name}-{i}-{uuid.uuid4()}"
+
+            with cols[0]:
+                st.write(portfolio_name)
+            with cols[1]:
+                st.write(date_str)
+            with cols[2]:
+                if st.button("Download", key=unique_key_download):
+                    st.download_button(
+                        label=f"Download {os.path.basename(file_name)}",
+                        data=file_content,
+                        file_name=os.path.basename(file_name),
+                        mime="application/pdf",
+                        key=f"download-{file_name}-{i}"
+                    )
+                if st.button("Delete", key=unique_key_delete):
+                    st.session_state.pop(file_name, None)
+                    st.write(f"Deleted {file_name}")
+                    if st.button("Undo", key=unique_key_undo):
+                        st.session_state[file_name] = file_content
+                        st.write(f"Restored {file_name}")
 
 if __name__ == "__main__":
     main()
