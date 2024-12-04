@@ -37,7 +37,6 @@ def run_query(query, params=None):
         return None
     
 def create_statements_table_if_not_exists(fund_name):
-    # Replace spaces in the fund name with underscores
     sanitized_fund_name = fund_name.replace(" ", "_")
     table_name = f"TESTINGAI.STATEMENTS.{sanitized_fund_name}_statements"
     create_table_query = f"""

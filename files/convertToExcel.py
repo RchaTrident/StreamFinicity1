@@ -6,7 +6,6 @@ import io
 
 def TransToExcel(input, name):
     transactions_df = pd.DataFrame(input)
-    # Sort by transaction date in descending order
     transactions_df = transactions_df.sort_values('Posting Date', ascending=False)
     
     buffer = io.BytesIO()

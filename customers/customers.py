@@ -5,6 +5,7 @@ import json
 import sys
 sys.path.append('/workspaces/StreamFinicity1')
 from utils.auth import get_token, auth
+import re
 
 
 
@@ -78,7 +79,6 @@ def getcustomers():
     auth['headers']['Finicity-App-Token'] = token
     response = requests.get(url = f"{auth['url']}/aggregation/v1/customers", headers=auth['headers'], params=params)
     data = response.json()
-    # return render_template("customers.html", customers=data['customers'])
     return data
 
 def getCustomerAccounts(customerId):
@@ -86,7 +86,7 @@ def getCustomerAccounts(customerId):
     auth['headers']['Finicity-App-Token'] = token
     response = requests.get(url=f"{auth['url']}/aggregation/v1/customers/{customerId}/accounts", headers = auth['headers'])
     data = response.json()
-    print(data)
+    # print(data)
     accounts = data['accounts']
     # print(accounts)
     for account in accounts:
@@ -97,9 +97,7 @@ def getCustomerAccounts(customerId):
                 formatted_key = ' '.join(word.capitalize() for word in re.findall('[A-Z]?[a-z]+', key))
                 formatted_detail[formatted_key] = value
             account['detail'] = formatted_detail
-            
-    # return render_template("accounts.html", accounts=accounts)
     return accounts
 
 # print(json.dumps(getcustomers(), indent = 2))
-# print(json.dumps(getCustomerAccounts(7030751153))
+# print(json.dumps(getCustomerAccounts(7030751153)))

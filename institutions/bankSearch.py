@@ -13,6 +13,6 @@ def getInstitutions(search):
         "search" : search
     }
 
-    response = requests.get(url = f"{auth['url']}/institution/v2/institutions", headers=auth['headers'], params=params)  # Use auth.auth
+    response = requests.get(url = f"{auth['url']}/institution/v2/institutions", headers=auth['headers'], params=params)
     data = response.json()
     return data

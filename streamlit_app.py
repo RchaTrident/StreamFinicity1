@@ -39,7 +39,7 @@ def main():
     if st.sidebar.button("Logout"):
         auth.logout()
 
-    # Save the current taskbar index to session state
+  
     st.session_state['taskbar_index'] = ["Reports", "Institutions", "Customers"].index(taskbar)
 
     if taskbar == "Reports":
@@ -51,8 +51,6 @@ def main():
         fund_name = st.selectbox("Fund Name", table_names, index=st.session_state.get('fund_name_index', 0))
         pretty_fund_name = prettify_name(fund_name)
         st.write(f"You selected: {pretty_fund_name}")
-        
-        # Save the current fund name index to session state
         st.session_state['fund_name_index'] = table_names.index(fund_name)
         
         try:
@@ -72,7 +70,7 @@ def main():
         end_time = st.text_input("End Time (IT MUST BE IN THIS FORMAT)" , "2024-09-30 23:59:59 UTC")
         UnixStart = dateconverter.human_to_unix(start_time)
         UnixEnd = dateconverter.human_to_unix(end_time)
-        ReportName = 
+        
         database1 = st.selectbox("Database", ["Allvue", "Geneva"])
         if "Geneva" in database1:
             gen_report_type = st.selectbox("Geneva Report", ["REC", "ART"])
@@ -86,18 +84,19 @@ def main():
             if "Transactions" in report_type:
                 transactions = GetTransactions.getCustomerTrans(customer_id, UnixStart, UnixEnd)
                 transactions = transactions['transactions']
-                
+                fundName = mapping_dict[0]["FUND_NAME"]
+                fileName = f"{fundName}_{end_time[5:10]}_transactions"
                 if "Allvue" in database1:
                     transactionsConv = GetTransactions.convertTransAllvue(transactions, mapping_dict)
                     st.write(transactionsConv)
-                    convertToExcel.TransToExcel(transactionsConv)
+                    convertToExcel.TransToExcel(transactionsConv,fileName)
                 if "Geneva" in database1:
                     if "REC" in gen_report_type:
                         transactionsConv = GetTransactions.convertTransREC(transactions, mapping_dict)  
-                        convertToExcel.TransToExcel(transactionsConv)  
+                        convertToExcel.TransToExcel(transactionsConv,fileName)  
                     if "ART" in gen_report_type:
                         transactionsConv = GetTransactions.convertTransART(transactions, mapping_dict)  
-                        convertToExcel.TransToExcel(transactionsConv)
+                        convertToExcel.TransToExcel(transactionsConv,fileName)
         statements.display_download_buttons()
 
     elif taskbar == "Institutions":
@@ -126,7 +125,8 @@ def main():
                 
         if st.button("Generate Connect Link"):
             customerId = st.text_input("input the customer Id")
-            connect_link_data = customers.generateConnectLink(auth.auth["prod"]["pId"], customerId=7030015086 )
+            customerId = "7036039246"
+            connect_link_data = customers.generateConnectLink( customerId,auth.auth["prod"]["pId"])
             st.write(connect_link_data)
 
         if st.button("Display All Customers"):

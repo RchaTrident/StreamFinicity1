@@ -24,14 +24,9 @@ def getCustomerTrans(customerId, fromDate, toDate):
 
 
 def convertTransAllvue(arr, mapping_dict):
-    # st.write(arr, "this is the arr", type(arr))
-    # mapping_df[""]
     if len(arr) > 0:
-        # all_keys = set().union(*(d.keys() for d in arr))
         keys_to_keep = {'amount', 'accountId', 'description', 'memo', 'transactionDate'}
         for index, j in enumerate(arr):
-           
-            # st.write(len(arr), "the length of transactions array")
             if len(arr) == 0:
                 st.write("there are no transactions this timespan")
                 return
