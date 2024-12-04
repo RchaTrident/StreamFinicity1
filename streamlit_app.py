@@ -16,7 +16,7 @@ from institutions import bankSearch
 from statements import statements
 import uuid
 
-st.set_page_config(page_title="Finicity-like App", layout="wide")
+st.set_page_config(page_title="Trident Trust Open Banking", layout="wide")
 
 def prettify_name(name):
     """Converts a string like 'customer_transactions_parallaxes_capital_llc' to 'Parallaxes Capital LLC'."""
@@ -52,13 +52,13 @@ def main():
         fund_name = st.selectbox("Fund Name", table_names, index=st.session_state.get('fund_name_index', 0))
         pretty_fund_name = prettify_name(fund_name)
         st.write(f"You selected: {pretty_fund_name}")
-        st.session_state['fund_name_index'] = table_names.index(fund_name)
+        # st.session_state['fund_name_index'] = table_names.index(fund_name)
         
         try:
             query = f"SELECT * FROM {fund_name}" 
             mapping_df = database.run_query(query)
             mapping_dict = mapping_df.to_dict(orient='records')
-            st.write(mapping_dict, "here is the mapping dict")
+            # st.write(mapping_dict, "here is the mapping dict")
             if mapping_dict:
                 customer_id = mapping_dict[0]["CUSTOMER_ID"]
                 st.write('records found!')
@@ -91,8 +91,8 @@ def main():
         st.write("NOTE: IF YOU CLICK DOWNLOAD WHILE THE PROGRAM RUNS, IT WILL INTERRUPT. WAIT UNTIL ALL ARE DOWNLOADED")
         
         if st.button("Generate Report"):
-            for key in list(st.session_state.keys()):
-                del st.session_state[key]
+            # for key in list(st.session_state.keys()):
+            #     del st.session_state[key]
             if "Statements" in report_type:
                 statements.getBankStatements(customer_id, mapping_dict, end_time)
             if "Transactions" in report_type:

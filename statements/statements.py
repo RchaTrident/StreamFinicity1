@@ -102,17 +102,13 @@ def getBankStatements(customerId, mapping_dict, end_time):
 
 
 def display_download_buttons():
-    # Extracting session state items into a list of dictionaries
     data = []
     for i, (file_name, file_content) in enumerate(st.session_state.items()):
         if isinstance(file_content, (bytes, bytearray)) and file_name.endswith(".pdf"):
-            # Create a download link
             b64 = base64.b64encode(file_content).decode()
             href = f'<a href="data:application/pdf;base64,{b64}" download="{os.path.basename(file_name)}">Download {os.path.basename(file_name)}</a>'
             data.append({"File Name": file_name, "Download Link": href})
 
-    # Creating a DataFrame from the list of dictionaries
-    df = pd.DataFrame(data)
-
-    # Displaying the DataFrame using st.dataframe or st.table
-    st.write(df.to_html(escape=False), unsafe_allow_html=True)
+    if data:
+        df = pd.DataFrame(data)
+        st.write(df.to_html(escape=False), unsafe_allow_html=True)
