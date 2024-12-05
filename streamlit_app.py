@@ -87,6 +87,7 @@ def main():
                         mapping_dict = mapping_df.to_dict(orient='records')
                         if mapping_dict:
                             customer_id = mapping_dict[0]["CUSTOMER_ID"]
+                            st.write(mapping_dict)
                             st.write('Records found!')
                         else:
                             st.write("No mapping found for the selected fund.")
@@ -137,7 +138,7 @@ def main():
                                     convertToExcel.TransToExcel(transactionsConv, fileName)  
                                 if "ART" in gen_report_type:
                                     transactionsConv = GetTransactions.convertTransART(transactions, mapping_dict)  
-                                    convertToExcel.TransToExcel(transactionsConv, fileName)
+                                    convertToExcel.TransToExcelART(transactionsConv, fileName)
 
                     statements.display_download_buttons()
                 else:

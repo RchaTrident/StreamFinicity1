@@ -102,6 +102,7 @@ def filter_and_organize_data(data):
             "institutionId": item["institutionId"]
         }
         filtered_data.append(filtered_item)
+    print(filtered_data)
     return filtered_data
 
 
@@ -110,5 +111,3 @@ def refreshCustomerAccounts(customerId):
     auth['headers']['Finicity-App-Token'] = token
     response = requests.get(url=f"{auth['url']}/aggregation/v1/customers/{customerId}/accounts",headers = auth['headers'])
     print(response.status_code)
-# print(json.dumps(getcustomers(), indent = 2))
-# print(json.dumps(getCustomerAccounts(7030216672)))

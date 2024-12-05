@@ -19,7 +19,9 @@ def getCustomerTrans(customerId, fromDate, toDate):
     }
     response = requests.get(url=f"{auth['url']}/aggregation/v3/customers/{customerId}/transactions", headers=auth['headers'], params=params)
     st.write(f"{auth['url']}/aggregation/v3/customers/{customerId}/transactions")
+    print(response)
     json_data = json.loads(response.text)
+    print(json_data, "jSON DATA")
     return json_data
 
 
@@ -224,3 +226,93 @@ def convertTransREC(arr, mapping_dict):
         final.append(res)
     # print(json.dumps(final), "the final result")
     return final
+
+def convertTransART(arr, mapping_dict):
+    grouped_data = []
+    for item in arr:
+        item['RecordAction'] = 'InsertUpdate'
+        item['KeyValue'] = 'NULL'
+        accnt2 = item['accountId']
+
+        item['EventDate'] = dateConverter(str(item['transactionDate']))
+        item['Portfolio'] =  mapping_dict["ACCOUNTCOMPANYCODE"]
+        item['SettleDate'] =  dateConverter(str(item.pop('transactionDate')))
+        item['ActualSettleDate'] =  dateConverter(str(item.pop('postedDate')))
+        item['Investment'] = 'USD'
+        item['LocationAccount'] =  mapping_dict["FUND_NAME"]
+        item['FundStructure'] =  mapping_dict["FUND_NAME"]
+
+        if item["amount"] > 0:
+            item["AdjLines.DebitAmount"] = 0
+            item["AdjLines.CreditAmount"] = abs(item["amount"])
+        if item["amount"] < 0:
+            item["AdjLines.CreditAmount"] = 0
+            item["AdjLines.DebitAmount"] = abs(item["amount"])
+        
+        item['Strategy'] = "Undefined"
+        item['CounterInvestment'] = 'USD'
+        itemCategory = item["categorization"]["category"]
+        memo = None
+        if "memo" in item:
+            memo = item["memo"]
+        item["AdjLines.FinAcctCode"] = f"{itemCategory}_{memo}"
+        item["AdjLines.TaxLotType"] = "UseDefault"
+        item["AdjLines.LineNumber"] = 1
+
+        item2 = item.copy()
+        item2['RecordAction'] = 'InsertUpdate'
+        item2['KeyValue'] = 'NULL'
+        item2["AdjLines.LineNumber"] = 2
+        item2['EventDate'] = None
+        item2['Portfolio'] =  None
+        item2['SettleDate'] =  None
+        item2['ActualSettleDate'] =  None
+        item2['Investment'] = None
+        item2['LocationAccount'] = None
+        item2['FundStructure'] =  None
+        item2['Strategy'] = None
+        item2['CounterInvestment'] = 'USD'
+        itemCategory = item2["categorization"]["category"]
+        memo = None
+        if "memo" in item:
+            memo = item["memo"]
+        item2["AdjLines.FinAcctCode"] = f"{itemCategory}_{memo}"
+        item2["AdjLines.TaxLotType"] = "UseDefault"
+        item2["AdjLines.LineNumber"] = 1
+
+        if item["amount"] > 0:
+            item2["AdjLines.DebitAmount"] = abs(item2["amount"])
+            item2["AdjLines.CreditAmount"] = 0
+        if item["amount"] < 0:
+            item2["AdjLines.CreditAmount"] = abs(item2["amount"])
+            item2["AdjLines.DebitAmount"] = 0
+        item.pop("id")
+        item.pop("customerId")
+        item.pop("status")
+        item.pop("description")
+        if "type" in item:
+            item.pop("type")
+        
+        item.pop("createdDate")
+        item.pop("categorization")
+        item.pop("amount")
+        item.pop("accountId")
+        if "memo" in item:
+            item.pop("memo")
+
+        item2.pop("id")
+        item2.pop("customerId")
+        item2.pop("status")
+        item2.pop("description")
+
+        item2.pop("createdDate")
+        item2.pop("categorization")
+        item2.pop("amount")
+        item2.pop("accountId")
+
+        
+        grouped_data.append(item)
+        grouped_data.append(item2)
+    
+    df = pd.json_normalize(grouped_data)
+    print(grouped_data)
