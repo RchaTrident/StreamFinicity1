@@ -27,14 +27,22 @@ def get_index_and_month_day(end_time_str):
     end_time = datetime.strptime(end_time_str, "%Y-%m-%d %H:%M:%S %Z")
     today = datetime.now(timezone.utc)
 
-    index = (today.year - end_time.year) * 12 + today.month - end_time.month
+    # Check if the given date is the last day of the month
+    next_month = end_time.replace(day=28) + timedelta(days=4)  # this will always get to the next month
+    last_day_of_month = next_month - timedelta(days=next_month.day)
 
-    if end_time.day < 28:
+    if end_time != last_day_of_month:
+        # If not the last day of the month, set to the last day of the previous month
         end_time = end_time.replace(day=1) - timedelta(days=1)
-        index += 1
-    
+
+    index = (today.year - end_time.year) * 12 + today.month - end_time.month
     month_day = end_time.strftime("%m_%d")
     return index, month_day
+
+def sanitize_portfolio(portfolio):
+    # Replace spaces with underscores and & with _and_
+    sanitized_portfolio = portfolio.replace(" ", "_").replace("&", "_and_")
+    return sanitized_portfolio
 
 def getBankStatements(customerId, mapping_dict, end_time):
     get_token()
@@ -49,7 +57,7 @@ def getBankStatements(customerId, mapping_dict, end_time):
         
         index, month_day = get_index_and_month_day(end_time)
         file_name = f"{portfolio}_{month_day}_Account_{last4}.pdf"
-        sanitized_portfolio = portfolio.replace(" ", "_")
+        sanitized_portfolio = sanitize_portfolio(portfolio)
         
         create_statements_table_if_not_exists(sanitized_portfolio)
         
@@ -68,7 +76,7 @@ def getBankStatements(customerId, mapping_dict, end_time):
                 
                 with st.spinner(f"Downloading statement for {portfolio}..."):
                     print(f"Calling API for customerId: {customerId}, accountId: {accountId}")
-                    response = requests.get(url=f"{auth['url']}/aggregation/v1/customers/{customerId}/accounts/{accountId}/statement", params=params, headers=auth['headers'], timeout=180)
+                    response = requests.get(url=f"{auth['url']}/aggregation/v1/customers/{customerId}/accounts/{accountId}/statement", params=params, headers=auth['headers'], timeout=360)
                     if response.status_code == 200 and response.headers['Content-Type'] == 'application/pdf':
                         file_content = response.content
                         store_file_in_snowflake(table_name, file_name, file_content, customerId, accountId, portfolio, month_day)
@@ -76,6 +84,7 @@ def getBankStatements(customerId, mapping_dict, end_time):
                         st.write(f"Bank statement saved as '{file_name}'")
                     else:
                         st.write("Failed to get bank statement or the content is not in PDF format.")
+                        print(response.status_code, "the response code", response, "the actual response")
             except requests.exceptions.Timeout:
                 st.write("Request timed out. Consider adjusting the timeout value or handling the exception.")
         
@@ -87,19 +96,6 @@ def getBankStatements(customerId, mapping_dict, end_time):
         
         st.session_state['current_step'] = i + 1
         time.sleep(5)
-
-# def display_download_buttons():
-#     for i, (file_name, file_content) in enumerate(st.session_state.items()):
-#         if isinstance(file_content, (bytes, bytearray)) and file_name.endswith(".pdf"):
-#             st.download_button(
-#                 label=f"Download {os.path.basename(file_name)}",
-#                 data=file_content,
-#                 file_name=os.path.basename(file_name),
-#                 mime="application/pdf",
-#                 key=f"download-{file_name}-{i}"
-#             )
-
-
 
 def display_download_buttons():
     data = []

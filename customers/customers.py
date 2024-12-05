@@ -8,14 +8,6 @@ from utils.auth import get_token, auth
 import re
 
 
-
-
-def getCustomerAccounts(customerId):
-    get_token()
-    response = requests.get(url=f"{auth['url']}/aggregation/v1/customers/{customerId}/accounts", headers=auth['headers'])
-    json_data = json.loads(response.text)
-    return json.dumps(json_data)
-
 def generateConnectLink(customerID,partnerId):
     token = get_token()
     st.write(token)
@@ -86,9 +78,7 @@ def getCustomerAccounts(customerId):
     auth['headers']['Finicity-App-Token'] = token
     response = requests.get(url=f"{auth['url']}/aggregation/v1/customers/{customerId}/accounts", headers = auth['headers'])
     data = response.json()
-    # print(data)
     accounts = data['accounts']
-    # print(accounts)
     for account in accounts:
         if 'detail' in account and account['detail']:
             formatted_detail = {}
@@ -99,5 +89,26 @@ def getCustomerAccounts(customerId):
             account['detail'] = formatted_detail
     return accounts
 
+def filter_and_organize_data(data):
+    filtered_data = []
+    for item in data:
+        filtered_item = {
+            "id": item["id"],
+            "number": item["number"],
+            "realAccountNumberLast4": item["realAccountNumberLast4"],
+            "accountNumberDisplay": item["accountNumberDisplay"],
+            "name": item["name"],
+            "type": item["type"],
+            "institutionId": item["institutionId"]
+        }
+        filtered_data.append(filtered_item)
+    return filtered_data
+
+
+def refreshCustomerAccounts(customerId):
+    token = get_token()
+    auth['headers']['Finicity-App-Token'] = token
+    response = requests.get(url=f"{auth['url']}/aggregation/v1/customers/{customerId}/accounts",headers = auth['headers'])
+    print(response.status_code)
 # print(json.dumps(getcustomers(), indent = 2))
-# print(json.dumps(getCustomerAccounts(7030751153)))
+# print(json.dumps(getCustomerAccounts(7030216672)))

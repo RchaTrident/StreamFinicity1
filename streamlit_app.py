@@ -18,6 +18,13 @@ import uuid
 
 st.set_page_config(page_title="Trident Trust Open Banking", layout="wide")
 
+
+def reset_session_state(except_keys):
+    for key in list(st.session_state.keys()):
+        if key not in except_keys:
+            del st.session_state[key]
+
+
 def prettify_name(name):
     """Converts a string like 'customer_transactions_parallaxes_capital_llc' to 'Parallaxes Capital LLC'."""
     words = name.split('_')
@@ -26,8 +33,12 @@ def prettify_name(name):
 
 def main():
     conn = database.get_snowflake_connection()
+    
+
+
     if 'logged_in' not in st.session_state:
         st.session_state['logged_in'] = False
+    
     if not st.session_state['logged_in']:
         auth.login_page()
         return  
@@ -37,82 +48,104 @@ def main():
         ("Reports", "Institutions", "Customers"),
         index=st.session_state.get('taskbar_index', 0)
     )
-
+    st.write("Current session state login status:", st.session_state["user_role"], st.session_state["logged_in"])
+    if st.button("Reset Session State"):
+        reset_session_state(['user_role', 'logged_in'])
+        st.success("Session state reset except 'user_role' and 'logged_in'")
     if st.sidebar.button("Logout"):
         auth.logout()
 
     st.session_state['taskbar_index'] = ["Reports", "Institutions", "Customers"].index(taskbar)
+    # st.session_state
 
     if taskbar == "Reports":
         st.title("Reports")
-        query = "SHOW TABLES IN TESTINGAI.TESTINGAISCHEMA"
-        table_names_df = database.run_query(query)
-        if table_names_df is not None:
-            table_names = table_names_df['name'].tolist()
-        fund_name = st.selectbox("Fund Name", table_names, index=st.session_state.get('fund_name_index', 0))
-        pretty_fund_name = prettify_name(fund_name)
-        st.write(f"You selected: {pretty_fund_name}")
-        # st.session_state['fund_name_index'] = table_names.index(fund_name)
         
-        try:
-            query = f"SELECT * FROM {fund_name}" 
-            mapping_df = database.run_query(query)
-            mapping_dict = mapping_df.to_dict(orient='records')
-            # st.write(mapping_dict, "here is the mapping dict")
-            if mapping_dict:
-                customer_id = mapping_dict[0]["CUSTOMER_ID"]
-                st.write('records found!')
+        user_role = st.session_state.get('user_role')
+        if user_role:
+            allowed_tables = auth.user_roles[user_role]["tables"]
+            st.write(f"Allowed tables for {user_role}: {allowed_tables}")
+            query = "SHOW TABLES IN TESTINGAI.TESTINGAISCHEMA"
+            table_names_df = database.run_query(query)
+            if table_names_df is not None:
+                table_names = table_names_df['name'].tolist()
+                st.write(f"Retrieved table names: {table_names}")
+                
+                if "ALL" not in allowed_tables:
+                    allowed_table_names = [table.split('.')[-1] for table in allowed_tables]
+                    table_names = [table for table in table_names if table in allowed_table_names]
+                    st.write(f"Filtered table names: {table_names}")
+                
+                if table_names:
+                    fund_name = st.selectbox("Fund Name", table_names, index=st.session_state.get('fund_name_index', 0))
+                    pretty_fund_name = prettify_name(fund_name)
+                    st.write(f"You selected: {pretty_fund_name}")
+                    
+                    try:
+                        query = f"SELECT * FROM {fund_name}" 
+                        mapping_df = database.run_query(query)
+                        mapping_dict = mapping_df.to_dict(orient='records')
+                        if mapping_dict:
+                            customer_id = mapping_dict[0]["CUSTOMER_ID"]
+                            st.write('Records found!')
+                        else:
+                            st.write("No mapping found for the selected fund.")
+                    except Exception as e:
+                        st.error(f"Error fetching data: {e}")
+                    
+                    today = datetime.now(timezone.utc)
+                    first_day_last_month = (today.replace(day=1) - timedelta(days=1)).replace(day=1)
+                    last_day_last_month = today.replace(day=1) - timedelta(days=1)
+
+                    start_time_default = first_day_last_month.strftime("%Y-%m-%d 00:00:00 UTC")
+                    end_time_default = last_day_last_month.strftime("%Y-%m-%d 23:59:59 UTC")
+
+                    start_date = st.date_input("Start Date", value=first_day_last_month)
+                    end_date = st.date_input("End Date", value=last_day_last_month)
+
+                    start_time = f"{start_date.strftime('%Y-%m-%d')} 00:00:00 UTC"
+                    end_time = f"{end_date.strftime('%Y-%m-%d')} 23:59:59 UTC"
+
+                    UnixStart = dateconverter.human_to_unix(start_time)
+                    UnixEnd = dateconverter.human_to_unix(end_time)
+                    
+                    database1 = st.selectbox("Database", ["Allvue", "Geneva"])
+                    if "Geneva" in database1:
+                        gen_report_type = st.selectbox("Geneva Report", ["REC", "ART"])
+                    report_type = st.multiselect("Report Type", ["Statements", "Transactions"])
+                
+                    st.write("NOTE: It costs money each time you run a transaction or generate a statement. Please be conservative with how many requests you make! The date range and number of transactions do not matter, it is the frequency of requests we are charged on.")
+                    st.write("NOTE: IF YOU CLICK DOWNLOAD WHILE THE PROGRAM RUNS, IT WILL INTERRUPT. WAIT UNTIL ALL ARE DOWNLOADED")
+                    
+                    if st.button("Generate Report"):
+                        if "Statements" in report_type:
+                            customers.refreshCustomerAccounts(customer_id)
+                            statements.getBankStatements(customer_id, mapping_dict, end_time)
+                        if "Transactions" in report_type:
+                            customers.refreshCustomerAccounts(customer_id)
+                            transactions = GetTransactions.getCustomerTrans(customer_id, UnixStart, UnixEnd)
+                            transactions = transactions['transactions']
+                            fundName = mapping_dict[0]["FUND_NAME"]
+                            fileName = f"{fundName}_{end_time[5:10]}_transactions"
+                            if "Allvue" in database1:
+                                transactionsConv = GetTransactions.convertTransAllvue(transactions, mapping_dict)
+                                st.write(transactionsConv)
+                                convertToExcel.TransToExcel(transactionsConv, fileName)
+                            if "Geneva" in database1:
+                                if "REC" in gen_report_type:
+                                    transactionsConv = GetTransactions.convertTransREC(transactions, mapping_dict)  
+                                    convertToExcel.TransToExcel(transactionsConv, fileName)  
+                                if "ART" in gen_report_type:
+                                    transactionsConv = GetTransactions.convertTransART(transactions, mapping_dict)  
+                                    convertToExcel.TransToExcel(transactionsConv, fileName)
+
+                    statements.display_download_buttons()
+                else:
+                    st.write("No tables found.")
             else:
-                st.write("No mapping found for the selected fund.")
-        except Exception as e:
-            st.error(f"Error fetching data: {e}")
-        today = datetime.now(timezone.utc)
-        first_day_last_month = (today.replace(day=1) - timedelta(days=1)).replace(day=1)
-        last_day_last_month = today.replace(day=1) - timedelta(days=1)
-
-        start_time_default = first_day_last_month.strftime("%Y-%m-%d 00:00:00 UTC")
-        end_time_default = last_day_last_month.strftime("%Y-%m-%d 23:59:59 UTC")
-
-        start_date = st.date_input("Start Date", value=first_day_last_month)
-        end_date = st.date_input("End Date", value=last_day_last_month)
-
-        start_time = f"{start_date.strftime('%Y-%m-%d')} 00:00:00 UTC"
-        end_time = f"{end_date.strftime('%Y-%m-%d')} 23:59:59 UTC"
-
-        UnixStart = dateconverter.human_to_unix(start_time)
-        UnixEnd = dateconverter.human_to_unix(end_time)
-        
-        database1 = st.selectbox("Database", ["Allvue", "Geneva"])
-        if "Geneva" in database1:
-            gen_report_type = st.selectbox("Geneva Report", ["REC", "ART"])
-        report_type = st.multiselect("Report Type", ["Statements", "Transactions"])
-    
-        st.write("NOTE: It costs money each time you run a transaction or generate a statement. Please be conservative with how many requests you make! The date range and number of transactions do not matter, it is the frequency of requests we are charged on.")
-        st.write("NOTE: IF YOU CLICK DOWNLOAD WHILE THE PROGRAM RUNS, IT WILL INTERRUPT. WAIT UNTIL ALL ARE DOWNLOADED")
-        
-        if st.button("Generate Report"):
-            # for key in list(st.session_state.keys()):
-            #     del st.session_state[key]
-            if "Statements" in report_type:
-                statements.getBankStatements(customer_id, mapping_dict, end_time)
-            if "Transactions" in report_type:
-                transactions = GetTransactions.getCustomerTrans(customer_id, UnixStart, UnixEnd)
-                transactions = transactions['transactions']
-                fundName = mapping_dict[0]["FUND_NAME"]
-                fileName = f"{fundName}_{end_time[5:10]}_transactions"
-                if "Allvue" in database1:
-                    transactionsConv = GetTransactions.convertTransAllvue(transactions, mapping_dict)
-                    st.write(transactionsConv)
-                    convertToExcel.TransToExcel(transactionsConv, fileName)
-                if "Geneva" in database1:
-                    if "REC" in gen_report_type:
-                        transactionsConv = GetTransactions.convertTransREC(transactions, mapping_dict)  
-                        convertToExcel.TransToExcel(transactionsConv, fileName)  
-                    if "ART" in gen_report_type:
-                        transactionsConv = GetTransactions.convertTransART(transactions, mapping_dict)  
-                        convertToExcel.TransToExcel(transactionsConv, fileName)
-
-        statements.display_download_buttons()
+                st.write("No tables found.")
+        else:
+            st.write("No role assigned.")
 
     elif taskbar == "Institutions":
         st.title("Institutions")
@@ -174,51 +207,22 @@ def main():
             if customer_data:
                 customer_ID = customer_data["id"]
                 st.write(customer_ID)
-                
+
+        customerId = st.text_input("input the customer Id")
         if st.button("Generate Connect Link"):
-            customerId = st.text_input("input the customer Id")
-            customerId = "7036039246"
-            connect_link_data = customers.generateConnectLink(customerId, auth.auth["prod"]["pId"])
-            st.write(connect_link_data)
+                connect_link_data = customers.generateConnectLink(customerId, auth.auth["prod"]["pId"])
+                st.write(connect_link_data)
+        else:
+            st.write("Please input the customer Id.")
 
         if st.button("Display All Customers"):
             connect_link_data = customers.getcustomers()
             st.write(connect_link_data) 
-
-def display_download_buttons():
-
-    st.write("### Download Statements")
-    cols = st.columns([1, 1, 2])
-    cols[0].write("**Portfolio Name**")
-    cols[1].write("**Date**")
-    cols[2].write("**Actions**")
-
-    for i, (file_name, file_content) in enumerate(st.session_state.items()):
-        if isinstance(file_content, (bytes, bytearray)) and file_name.endswith(".pdf"):
-            portfolio_name, date_str, _account_info = file_name.split('_')
-            unique_key_download = f"download-{file_name}-{i}-{uuid.uuid4()}"
-            unique_key_delete = f"delete-{file_name}-{i}-{uuid.uuid4()}"
-            unique_key_undo = f"undo-{file_name}-{i}-{uuid.uuid4()}"
-
-            with cols[0]:
-                st.write(portfolio_name)
-            with cols[1]:
-                st.write(date_str)
-            with cols[2]:
-                if st.button("Download", key=unique_key_download):
-                    st.download_button(
-                        label=f"Download {os.path.basename(file_name)}",
-                        data=file_content,
-                        file_name=os.path.basename(file_name),
-                        mime="application/pdf",
-                        key=f"download-{file_name}-{i}"
-                    )
-                if st.button("Delete", key=unique_key_delete):
-                    st.session_state.pop(file_name, None)
-                    st.write(f"Deleted {file_name}")
-                    if st.button("Undo", key=unique_key_undo):
-                        st.session_state[file_name] = file_content
-                        st.write(f"Restored {file_name}")
+        if st.button("Get Customer Accounts"):
+            connect_link_data = customers.getCustomerAccounts(customerId)
+            organizedAccounts = customers.filter_and_organize_data(connect_link_data)
+            df = pd.DataFrame(organizedAccounts)
+            st.dataframe(df)
 
 if __name__ == "__main__":
     main()
