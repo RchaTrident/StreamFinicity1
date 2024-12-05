@@ -95,7 +95,6 @@ def filter_and_organize_data(data):
         filtered_item = {
             "id": item["id"],
             "number": item["number"],
-            "realAccountNumberLast4": item["realAccountNumberLast4"],
             "accountNumberDisplay": item["accountNumberDisplay"],
             "name": item["name"],
             "type": item["type"],

@@ -219,6 +219,7 @@ def main():
             st.write(connect_link_data) 
         if st.button("Get Customer Accounts"):
             connect_link_data = customers.getCustomerAccounts(customerId)
+            print(connect_link_data, "THE LIIINKaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa DATA")
             organizedAccounts = customers.filter_and_organize_data(connect_link_data)
             df = pd.DataFrame(organizedAccounts)
             st.dataframe(df)
