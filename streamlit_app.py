@@ -1,29 +1,23 @@
 import streamlit as st
 import pandas as pd
-from snowflake.connector.pandas_tools import write_pandas
-import snowflake.connector
-import requests
-import json
-import io
-from sqlalchemy import create_engine
-from snowflake.sqlalchemy import URL
 from datetime import datetime, timedelta, timezone
-from utils import auth, database, dateconverter
-from transactions import GetTransactions
-from files import convertToExcel
-from customers import customers
-from institutions import bankSearch
-from statements import statements
 import uuid
 
-st.set_page_config(page_title="Trident Trust Open Banking", layout="wide")
+from utils import auth, database, dateconverter
 
+@st.cache_resource
+def get_snowflake_connection():
+    return database.get_snowflake_connection()
+
+@st.cache_data
+def load_data(query, params=None):
+    conn = get_snowflake_connection()
+    return pd.read_sql(query, conn, params=params)
 
 def reset_session_state(except_keys):
     for key in list(st.session_state.keys()):
         if key not in except_keys:
             del st.session_state[key]
-
 
 def prettify_name(name):
     """Converts a string like 'customer_transactions_parallaxes_capital_llc' to 'Parallaxes Capital LLC'."""
@@ -32,9 +26,7 @@ def prettify_name(name):
     return pretty_name
 
 def main():
-    conn = database.get_snowflake_connection()
-    
-
+    conn = get_snowflake_connection()
 
     if 'logged_in' not in st.session_state:
         st.session_state['logged_in'] = False
@@ -54,9 +46,7 @@ def main():
         st.success("Session state reset except 'user_role' and 'logged_in'")
     if st.sidebar.button("Logout"):
         auth.logout()
-
     st.session_state['taskbar_index'] = ["Reports", "Institutions", "Customers"].index(taskbar)
-    # st.session_state
 
     if taskbar == "Reports":
         st.title("Reports")
@@ -119,6 +109,12 @@ def main():
                     st.write("NOTE: IF YOU CLICK DOWNLOAD WHILE THE PROGRAM RUNS, IT WILL INTERRUPT. WAIT UNTIL ALL ARE DOWNLOADED")
                     
                     if st.button("Generate Report"):
+                        # Conditional imports for report generation
+                        from customers import customers
+                        from transactions import GetTransactions
+                        from files import convertToExcel
+                        from statements import statements
+                        
                         if "Statements" in report_type:
                             customers.refreshCustomerAccounts(customer_id)
                             statements.getBankStatements(customer_id, mapping_dict, end_time)
@@ -140,7 +136,7 @@ def main():
                                     transactionsConv = GetTransactions.convertTransART(transactions, mapping_dict)  
                                     convertToExcel.TransToExcelART(transactionsConv, fileName)
 
-                    statements.display_download_buttons()
+                        statements.display_download_buttons()
                 else:
                     st.write("No tables found.")
             else:
@@ -151,7 +147,7 @@ def main():
     elif taskbar == "Institutions":
         st.title("Institutions")
         query = "SELECT * FROM TESTINGAI.INSTITUTIONS.INSTITUTIONS"
-        conn = database.get_snowflake_connection()
+        conn = get_snowflake_connection()
         instList = pd.read_sql(query, conn)
         instList.rename(columns={'BANK_NAME': 'Bank Name', 'BANK_ID': 'Bank ID', 'BANK_URL': 'Bank URL'}, inplace=True)
         st.dataframe(
@@ -167,9 +163,9 @@ def main():
         st.write("Can't find your institution? Search for it here:")
         search_term = st.text_input("type your bank name here")
         if st.button("Search Institution"):
+            # Conditional import for institution search
+            from institutions import bankSearch
             search_results = bankSearch.getInstitutions(search_term)
-            
-            # Extract relevant fields from the search results
             institutions_list = search_results['institutions']
             filtered_results = [
                 {
@@ -179,11 +175,10 @@ def main():
                     'transAgg': inst['transAgg'],
                     'urlLogonApp': inst['urlLogonApp']
                 }
-                for inst in institutions_list
+            for inst in institutions_list
             ]
             search_results_df = pd.DataFrame(filtered_results)
             search_results_df.rename(columns={'id': 'Bank ID', 'name': 'Bank Name', 'stateAgg': 'Statement Availability: ', 'transAgg': 'Transactions Availability: ', 'urlLogonApp': 'Bank URL'}, inplace=True)
-
             st.dataframe(
                 search_results_df,
                 column_config={
@@ -199,6 +194,9 @@ def main():
     elif taskbar == "Customers":
         customer_ID = ""
         st.title("Add new customer")
+        # Conditional import for customer operations
+        from customers import customers
+        
         ClientName = st.text_input("Type client's name here. Ex: ExampleFundPartnersLLC.", "ExampleFundPartnersLLC")
         firstName = st.text_input("First name of the client or owner of fund. Ex: John", "John")
         lastName = st.text_input("Last name of the client or owner of fund. Ex: Jingleheimer", "Jingleheimer")
@@ -211,8 +209,8 @@ def main():
 
         customerId = st.text_input("input the customer Id")
         if st.button("Generate Connect Link"):
-                connect_link_data = customers.generateConnectLink(customerId, auth.auth["prod"]["pId"])
-                st.write(connect_link_data)
+            connect_link_data = customers.generateConnectLink(customerId, auth.auth["prod"]["pId"])
+            st.write(connect_link_data)
         else:
             st.write("Please input the customer Id.")
 
