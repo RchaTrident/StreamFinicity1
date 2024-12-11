@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta, timezone
 import uuid
-
+import json
 from utils import auth, database, dateconverter
 
 @st.cache_resource
@@ -34,16 +34,19 @@ def main():
     if not st.session_state['logged_in']:
         auth.login_page()
         return  
+    if 'logged_in' in st.session_state:
+        auth.get_token()
 
     taskbar = st.sidebar.radio(
         "Navigation",
         ("Reports", "Institutions", "Customers"),
         index=st.session_state.get('taskbar_index', 0)
     )
-    st.write("Current session state login status:", st.session_state["user_role"], st.session_state["logged_in"])
-    if st.button("Reset Session State"):
-        reset_session_state(['user_role', 'logged_in'])
-        st.success("Session state reset except 'user_role' and 'logged_in'")
+    print("--------------------------------------------------------")
+    print("Current session state login status:", st.session_state["user_role"], st.session_state["logged_in"])
+    # if st.button("Reset Session State"):
+    #     reset_session_state(['user_role', 'logged_in'])
+    #     st.success("Session state reset except 'user_role' and 'logged_in'")
     if st.sidebar.button("Logout"):
         auth.logout()
     st.session_state['taskbar_index'] = ["Reports", "Institutions", "Customers"].index(taskbar)
@@ -54,17 +57,17 @@ def main():
         user_role = st.session_state.get('user_role')
         if user_role:
             allowed_tables = auth.user_roles[user_role]["tables"]
-            st.write(f"Allowed tables for {user_role}: {allowed_tables}")
+            print(f"Allowed tables for {user_role}: {allowed_tables}")
             query = "SHOW TABLES IN TESTINGAI.TESTINGAISCHEMA"
             table_names_df = database.run_query(query)
             if table_names_df is not None:
                 table_names = table_names_df['name'].tolist()
-                st.write(f"Retrieved table names: {table_names}")
+                print(f"Retrieved table names: {table_names}")
                 
                 if "ALL" not in allowed_tables:
                     allowed_table_names = [table.split('.')[-1] for table in allowed_tables]
                     table_names = [table for table in table_names if table in allowed_table_names]
-                    st.write(f"Filtered table names: {table_names}")
+                    print(f"Filtered table names: {table_names}")
                 
                 if table_names:
                     fund_name = st.selectbox("Fund Name", table_names, index=st.session_state.get('fund_name_index', 0))
@@ -77,7 +80,7 @@ def main():
                         mapping_dict = mapping_df.to_dict(orient='records')
                         if mapping_dict:
                             customer_id = mapping_dict[0]["CUSTOMER_ID"]
-                            st.write(mapping_dict)
+                            print(mapping_dict[0], "THE MAPPING DICT -------------------")
                             st.write('Records found!')
                         else:
                             st.write("No mapping found for the selected fund.")
@@ -107,9 +110,36 @@ def main():
                 
                     st.write("NOTE: It costs money each time you run a transaction or generate a statement. Please be conservative with how many requests you make! The date range and number of transactions do not matter, it is the frequency of requests we are charged on.")
                     st.write("NOTE: IF YOU CLICK DOWNLOAD WHILE THE PROGRAM RUNS, IT WILL INTERRUPT. WAIT UNTIL ALL ARE DOWNLOADED")
+                    customerId = mapping_dict[0]["CUSTOMER_ID"]
+
                     
+
+                    if st.button("Generate Cashflows Report"):
+                        # reset_session_state(['user_role', 'logged_in'])
+                        # st.success("Session state reset except 'user_role' and 'logged_in'")
+                        query = f"SELECT ACCOUNT_ID FROM {fund_name}" 
+                        account_mapping_df = database.run_query(query)
+                        account_mapping_dict = account_mapping_df.to_dict(orient='records')
+                        account_ids = ', '.join(d['ACCOUNT_ID'] for d in account_mapping_dict)
+                        print(account_ids, "the account ids", type(account_ids), 'type of account ids')
+                        from cashflows import cashflows
+                        fromDate = start_time
+                        print(fromDate, "from date")
+                        consumer = cashflows.getConsumer(customerId)
+                        consumer_data = json.loads(consumer.text)
+                        if 200 <= consumer.status_code <= 300:
+                            print(consumer.status_code, "the status code", consumer_data, "the consumer data")
+                            st.write(cashflows.cashflowAna(customerId,"personal", fromDate, account_ids))        
+                        else: 
+                            fundName = mapping_dict[0]["FUND_NAME"]
+                            print(fundName)
+                            st.write(cashflows.makeConsumer(customerId, fundName))
+                            st.write(cashflows.cashflowAna(customerId,"business", fromDate, account_ids))
+    
                     if st.button("Generate Report"):
-                        # Conditional imports for report generation
+                        reset_session_state(['user_role', 'logged_in'])
+                        st.success("Session state reset except 'user_role' and 'logged_in'")
+
                         from customers import customers
                         from transactions import GetTransactions
                         from files import convertToExcel
@@ -223,6 +253,8 @@ def main():
             organizedAccounts = customers.filter_and_organize_data(connect_link_data)
             df = pd.DataFrame(organizedAccounts)
             st.dataframe(df)
+
+        
 
 if __name__ == "__main__":
     main()

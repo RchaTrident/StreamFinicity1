@@ -77,14 +77,14 @@ def getBankStatements(customerId, mapping_dict, end_time):
                 with st.spinner(f"Downloading statement for {portfolio}..."):
                     print(f"Calling API for customerId: {customerId}, accountId: {accountId}")
                     response = requests.get(url=f"{auth['url']}/aggregation/v1/customers/{customerId}/accounts/{accountId}/statement", params=params, headers=auth['headers'], timeout=360)
-                    if response.status_code == 200 and response.headers['Content-Type'] == 'application/pdf':
+                    if 200 <= response.status_code <= 300 and response.headers['Content-Type'] == 'application/pdf':
                         file_content = response.content
                         store_file_in_snowflake(table_name, file_name, file_content, customerId, accountId, portfolio, month_day)
                         st.session_state[file_name] = file_content
                         st.write(f"Bank statement saved as '{file_name}'")
                     else:
                         st.write("Failed to get bank statement or the content is not in PDF format.")
-                        print(response.status_code, "the response code", response, "the actual response")
+                        st.write(response.status_code, "the response code", response, "the actual response")
             except requests.exceptions.Timeout:
                 st.write("Request timed out. Consider adjusting the timeout value or handling the exception.")
         

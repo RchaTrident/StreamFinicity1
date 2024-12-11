@@ -4,12 +4,13 @@ import requests
 import json
 from utils.auth import get_token, auth
 from utils.dateconverter import dateConverter
-
+from customers import customers
 
 
 final = []
 @st.cache_data
 def getCustomerTrans(customerId, fromDate, toDate):
+    customers.refreshCustomerAccounts(customerId)
     get_token()
     params = {
         "fromDate": fromDate,

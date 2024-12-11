@@ -28,6 +28,17 @@ user_roles = {
         "tables": ["TESTINGAI.TESTINGAISCHEMA.TIOGA"],
         "customers": ["Lee's Customer"]
     }
+    ,
+    "TRIDENT_NATHAN": {
+        "tables": ["TESTINGAI.TESTINGAISCHEMA.SUGAR_HILL"],
+        "customers": ["Lee's Customer"]
+    }
+    ,
+    "TRIDENT_TAYLOR": {
+        "tables": ["TESTINGAI.TESTINGAISCHEMA.FORT_HILL", 
+                   "TESTINGAI.TESTINGAISCHEMA.TIOGA"],
+        "customers": ["Lee's Customer"]
+    }
 }
 
 def hash_password(password):
