@@ -39,6 +39,18 @@ user_roles = {
                    "TESTINGAI.TESTINGAISCHEMA.TIOGA",
                    "TESTINGAI.TESTINGAISCHEMA.PARALLAXES"],
         "customers": ["Lee's Customer"]
+    },
+    "TRIDENT_TITUS": {
+        "tables": ["TESTINGAI.TESTINGAISCHEMA.FORT_HILL", 
+                   "TESTINGAI.TESTINGAISCHEMA.TIOGA",
+                   "TESTINGAI.TESTINGAISCHEMA.PARALLAXES"],
+        "customers": ["7030751153",
+                    # TRG_TRIDENT
+                    "7030751147",
+                    #Booth_Laird
+                    "7030755337",
+                    #Alexium
+                    ]
     }
 }
 

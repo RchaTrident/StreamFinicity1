@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 import uuid
 import json
 from utils import auth, database, dateconverter
+from accounts import accounts
 import numpy as np
 @st.cache_resource
 def get_snowflake_connection():
@@ -30,7 +31,8 @@ st.image("tridentlogo.png", use_column_width=True)
 
 def main():
     conn = get_snowflake_connection()
-    
+    user_role = st.session_state.get('user_role')
+
     if 'logged_in' not in st.session_state:
         st.session_state['logged_in'] = False
     
@@ -39,12 +41,19 @@ def main():
         return  
     if 'logged_in' in st.session_state:
         auth.get_token()
-
-    taskbar = st.sidebar.radio(
+    
+    if user_role == "TRIDENT_TITUS":
+        taskbar = st.sidebar.radio(
         "Navigation",
-        ("Reports", "Institutions", "Customers"),
+        ("Reports", "Institutions", "Customers", "Accounts"),
         index=st.session_state.get('taskbar_index', 0)
     )
+    else:
+        taskbar = st.sidebar.radio(
+            "Navigation",
+            ("Reports", "Institutions", "Customers"),
+            index=st.session_state.get('taskbar_index', 0)
+        )
     # print("--------------------------------------------------------")
     print("Current session state login status:", st.session_state["user_role"], st.session_state["logged_in"])
     # if st.button("Reset Session State"):
@@ -53,7 +62,7 @@ def main():
     if st.sidebar.button("Logout"):
         auth.logout()
     # st.session_state['taskbar_index'] = ["Reports", "Institutions", "Customers"].index(taskbar)
-    user_role = st.session_state.get('user_role')
+
     if taskbar == "Reports":
         st.title("Reports")
         if user_role:
@@ -265,7 +274,10 @@ def main():
             organizedAccounts = customers.filter_and_organize_data(connect_link_data)
             df = pd.DataFrame(organizedAccounts)
             st.dataframe(df)
-
+    if taskbar == "Accounts":
+        allowed_customers = auth.user_roles[user_role]["customers"]
+        print(allowed_customers)
+        Accounts = accounts.getCustomerAccounts(customerId)
         
 
 if __name__ == "__main__":
