@@ -6,6 +6,7 @@ import json
 from utils import auth, database, dateconverter
 from accounts import accounts
 import numpy as np
+import io
 @st.cache_resource
 def get_snowflake_connection():
     return database.get_snowflake_connection()
@@ -274,11 +275,92 @@ def main():
             organizedAccounts = customers.filter_and_organize_data(connect_link_data)
             df = pd.DataFrame(organizedAccounts)
             st.dataframe(df)
+
     if taskbar == "Accounts":
         allowed_customers = auth.user_roles[user_role]["customers"]
-        print(allowed_customers)
-        Accounts = accounts.getCustomerAccounts(customerId)
+        print(f"Number of allowed customers: {len(allowed_customers)}")
         
-
+        for customer_id in allowed_customers:
+            if st.button(f"Get Positions for {customer_id}"):
+                try:
+                    # Fetch accounts for the specific customer
+                    customer_accounts = accounts.getCustomerAccounts(customer_id)
+                    
+                    # Print the raw string for debugging
+                    print(f"Raw customer_accounts string: {customer_accounts[:100]}...")
+                    
+                    # Attempt to parse the string
+                    positions = []
+                    
+                    # Try parsing with json.loads first
+                    try:
+                        # Remove any leading/trailing whitespace
+                        customer_accounts = customer_accounts.strip()
+                        
+                        # Try JSON parsing
+                        accounts_data = json.loads(customer_accounts)
+                        
+                        # If successful, extract accounts
+                        if 'accounts' in accounts_data:
+                            for account in accounts_data['accounts']:
+                                # Extract position information
+                                position_info = {
+                                    'account_id': account.get('id', 'N/A'),
+                                    'number': account.get('number', 'N/A'),
+                                    'name': account.get('name', 'N/A'),
+                                    'balance': account.get('balance', 'N/A'),
+                                    'type': account.get('type', 'N/A')
+                                }
+                                positions.append(position_info)
+                    
+                    except json.JSONDecodeError:
+                        # If JSON parsing fails, try ast.literal_eval
+                        try:
+                            accounts_data = ast.literal_eval(customer_accounts)
+                            
+                            # If it's a dictionary with 'accounts' key
+                            if isinstance(accounts_data, dict) and 'accounts' in accounts_data:
+                                for account in accounts_data['accounts']:
+                                    position_info = {
+                                        'account_id': account.get('id', 'N/A'),
+                                        'number': account.get('number', 'N/A'),
+                                        'name': account.get('name', 'N/A'),
+                                        'balance': account.get('balance', 'N/A'),
+                                        'type': account.get('type', 'N/A')
+                                    }
+                                    positions.append(position_info)
+                        
+                        except (ValueError, SyntaxError) as e:
+                            st.error(f"Could not parse accounts data: {e}")
+                            # Print the raw string for manual inspection
+                            st.error(f"Raw data: {customer_accounts}")
+                    
+                    # Convert positions to DataFrame
+                    if positions:
+                        df = pd.DataFrame(positions)
+                        
+                        # Create a CSV buffer
+                        csv_buffer = io.StringIO()
+                        df.to_csv(csv_buffer, index=False)
+                        
+                        # Download button for positions
+                        st.download_button(
+                            label=f"Download Accounts for {customer_id}",
+                            data=csv_buffer.getvalue(),
+                            file_name=f"{customer_id}_accounts.csv",
+                            mime="text/csv"
+                        )
+                        
+                        # Optional: Display accounts in app
+                        st.write(f"Accounts for {customer_id}:")
+                        st.dataframe(df)
+                    else:
+                        st.warning(f"No accounts found for customer {customer_id}")
+                    
+                except Exception as e:
+                    st.error(f"Error fetching accounts for customer {customer_id}: {e}")
+                    # Print the full traceback for more detailed debugging
+                    import traceback
+                    st.error(traceback.format_exc())
 if __name__ == "__main__":
     main()

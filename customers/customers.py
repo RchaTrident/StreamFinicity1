@@ -109,4 +109,3 @@ def refreshCustomerAccounts(customerId):
     token = get_token()
     auth['headers']['Finicity-App-Token'] = token
     response = requests.get(url=f"{auth['url']}/aggregation/v1/customers/{customerId}/accounts",headers = auth['headers'])
-    print(response.stat
