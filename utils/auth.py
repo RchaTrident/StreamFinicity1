@@ -36,7 +36,8 @@ user_roles = {
     ,
     "TRIDENT_TAYLOR": {
         "tables": ["TESTINGAI.TESTINGAISCHEMA.FORT_HILL", 
-                   "TESTINGAI.TESTINGAISCHEMA.TIOGA"],
+                   "TESTINGAI.TESTINGAISCHEMA.TIOGA",
+                   "TESTINGAI.TESTINGAISCHEMA.PARALLAXES"],
         "customers": ["Lee's Customer"]
     }
 }
@@ -59,7 +60,6 @@ def authenticate(username, password):
 
 def login_page():
     st.title("Login")
-    
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
     

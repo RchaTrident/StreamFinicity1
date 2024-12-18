@@ -9,15 +9,42 @@ from customers import customers
 
 final = []
 @st.cache_data
+# def getCustomerTrans(customerId, fromDate, toDate, index = 1):
+#     customers.refreshCustomerAccounts(customerId)
+#     get_token()
+#     total = []
+#     params = {
+#         "fromDate": fromDate,
+#         "toDate": toDate,
+#         "index" : index,
+#         "limit": 1000,
+#         "includePending": True
+#     }
+     
+#     response = requests.get(url=f"{auth['url']}/aggregation/v3/customers/{customerId}/transactions", headers=auth['headers'], params=params)
+#     st.write(f"{auth['url']}/aggregation/v3/customers/{customerId}/transactions")
+#     print(response)
+#     json_data = json.loads(response.text)
+#     print(json_data, "jSON DATA")
+#     if len(json_data) > 1000:
+#         total.push(json_data)
+#         index +=1
+#         getCustomerTrans(customerId, fromDate, toDate, index)
+#     else: 
+#         return json_data
+
 def getCustomerTrans(customerId, fromDate, toDate):
     customers.refreshCustomerAccounts(customerId)
     get_token()
+
     params = {
         "fromDate": fromDate,
         "toDate": toDate,
+        "index" : 1,
         "limit": 1000,
         "includePending": True
     }
+     
     response = requests.get(url=f"{auth['url']}/aggregation/v3/customers/{customerId}/transactions", headers=auth['headers'], params=params)
     st.write(f"{auth['url']}/aggregation/v3/customers/{customerId}/transactions")
     print(response)

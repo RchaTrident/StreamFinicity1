@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 import uuid
 import json
 from utils import auth, database, dateconverter
-
+import numpy as np
 @st.cache_resource
 def get_snowflake_connection():
     return database.get_snowflake_connection()
@@ -25,9 +25,12 @@ def prettify_name(name):
     pretty_name = ' '.join(word.capitalize() for word in words)
     return pretty_name
 
+st.image("tridentlogo.png", use_column_width=True)
+
+
 def main():
     conn = get_snowflake_connection()
-
+    
     if 'logged_in' not in st.session_state:
         st.session_state['logged_in'] = False
     
@@ -42,24 +45,23 @@ def main():
         ("Reports", "Institutions", "Customers"),
         index=st.session_state.get('taskbar_index', 0)
     )
-    print("--------------------------------------------------------")
+    # print("--------------------------------------------------------")
     print("Current session state login status:", st.session_state["user_role"], st.session_state["logged_in"])
     # if st.button("Reset Session State"):
     #     reset_session_state(['user_role', 'logged_in'])
     #     st.success("Session state reset except 'user_role' and 'logged_in'")
     if st.sidebar.button("Logout"):
         auth.logout()
-    st.session_state['taskbar_index'] = ["Reports", "Institutions", "Customers"].index(taskbar)
-
+    # st.session_state['taskbar_index'] = ["Reports", "Institutions", "Customers"].index(taskbar)
+    user_role = st.session_state.get('user_role')
     if taskbar == "Reports":
         st.title("Reports")
-        
-        user_role = st.session_state.get('user_role')
         if user_role:
             allowed_tables = auth.user_roles[user_role]["tables"]
             print(f"Allowed tables for {user_role}: {allowed_tables}")
             query = "SHOW TABLES IN TESTINGAI.TESTINGAISCHEMA"
             table_names_df = database.run_query(query)
+
             if table_names_df is not None:
                 table_names = table_names_df['name'].tolist()
                 print(f"Retrieved table names: {table_names}")
@@ -111,8 +113,6 @@ def main():
                     st.write("NOTE: It costs money each time you run a transaction or generate a statement. Please be conservative with how many requests you make! The date range and number of transactions do not matter, it is the frequency of requests we are charged on.")
                     st.write("NOTE: IF YOU CLICK DOWNLOAD WHILE THE PROGRAM RUNS, IT WILL INTERRUPT. WAIT UNTIL ALL ARE DOWNLOADED")
                     customerId = mapping_dict[0]["CUSTOMER_ID"]
-
-                    
 
                     if st.button("Generate Cashflows Report"):
                         # reset_session_state(['user_role', 'logged_in'])
@@ -173,8 +173,7 @@ def main():
                 st.write("No tables found.")
         else:
             st.write("No role assigned.")
-
-    elif taskbar == "Institutions":
+    if taskbar == "Institutions":
         st.title("Institutions")
         query = "SELECT * FROM TESTINGAI.INSTITUTIONS.INSTITUTIONS"
         conn = get_snowflake_connection()
@@ -221,7 +220,7 @@ def main():
                 use_container_width=True,
                 hide_index=True
             )
-    elif taskbar == "Customers":
+    if taskbar == "Customers":
         customer_ID = ""
         st.title("Add new customer")
         # Conditional import for customer operations
@@ -245,8 +244,21 @@ def main():
             st.write("Please input the customer Id.")
 
         if st.button("Display All Customers"):
+            
             connect_link_data = customers.getcustomers()
-            st.write(connect_link_data) 
+            customers = []
+            allowed_customers = auth.user_roles[user_role]["customers"]
+            # arr = np.array(connect_link_data["customers"])
+            arr = connect_link_data["customers"]
+            if allowed_customers == "ALL":
+                st.dataframe(arr)
+            else:
+                for i in arr:
+                    if i["id"] in allowed_customers:
+                        customers.append(i)
+
+            # st.write(customers)
+
         if st.button("Get Customer Accounts"):
             connect_link_data = customers.getCustomerAccounts(customerId)
             print(connect_link_data, "THE LIIINKaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa DATA")
