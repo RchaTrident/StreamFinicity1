@@ -62,3 +62,4 @@ def log_user_login(user_id):
     """
     params = (user_id, login_date, login_time)
     run_query(query, params)
+

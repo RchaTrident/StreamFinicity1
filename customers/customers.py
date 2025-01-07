@@ -71,7 +71,7 @@ def getcustomers():
     auth['headers']['Finicity-App-Token'] = token
     response = requests.get(url = f"{auth['url']}/aggregation/v1/customers", headers=auth['headers'], params=params)
     data = response.json()
-    return data
+    return data['customers']
 
 def getCustomerAccounts(customerId):
     token = get_token()

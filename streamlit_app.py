@@ -35,7 +35,6 @@ st.image("tridentlogo.png", use_column_width=True)
 def main():
     conn = get_snowflake_connection()
     user_role = st.session_state.get('user_role')
-    
     if 'logged_in' not in st.session_state:
         st.session_state['logged_in'] = False
     
@@ -45,7 +44,7 @@ def main():
     if 'logged_in' in st.session_state:
         
         auth.get_token()
-    
+        
     if user_role == "TRIDENT_TITUS":
         taskbar = st.sidebar.radio(
         "Navigation",
@@ -100,10 +99,8 @@ def main():
     
         st.write("NOTE: It costs money each time you run a transaction or generate a statement. Please be conservative with how many requests you make! The date range and number of transactions do not matter, it is the frequency of requests we are charged on.")
         st.write("NOTE: IF YOU CLICK DOWNLOAD WHILE THE PROGRAM RUNS, IT WILL INTERRUPT. WAIT UNTIL ALL ARE DOWNLOADED")
-        
-        customerId = mapping_dict[0]["CUSTOMER_ID"]
 
-        print(customerId, "customer id -sdfsdfsdddddddddddddddddddddddddddddddddddd" )
+        customerId = mapping_dict[0]["CUSTOMER_ID"]
         if st.button("Generate Cashflows Report"):
             query = f"SELECT ACCOUNT_ID FROM {fund_name}" 
             account_mapping_df = database.run_query(query)
@@ -206,7 +203,7 @@ def main():
     if taskbar == "Customers":
         customer_ID = ""
         st.title("Add new customer")
-        # Conditional import for customer operations
+
         from customers import customers
         
         ClientName = st.text_input("Type client's name here. Ex: ExampleFundPartnersLLC.", "ExampleFundPartnersLLC")
@@ -229,31 +226,41 @@ def main():
         if st.button("Display All Customers"):
             
             connect_link_data = customers.getcustomers()
+            print(connect_link_data)
             customers = []
-            allowed_customers = auth.user_roles[user_role]["customers"]
-            # arr = np.array(connect_link_data["customers"])
-            arr = connect_link_data["customers"]
-            if allowed_customers == "ALL":
-                st.dataframe(arr)
+            query = f"""
+            SELECT CUSTOMER_ID
+            FROM TESTINGAI.USER_LOGS.USER_TABLE_MAPPING
+            WHERE USER_ID = '{user_role}';
+            """
+            allowed_cust = database.run_query(query)
+            allowed_customers = allowed_cust['CUSTOMER_ID'].tolist()
+            print(allowed_customers)
+            if user_role == "FINICITYTTUS":
+                st.dataframe(allowed_customers)
             else:
-                for i in arr:
+                for i in connect_link_data:
                     if i["id"] in allowed_customers:
                         customers.append(i)
 
-            # st.write(customers)
+            st.dataframe(customers)
 
         if st.button("Get Customer Accounts"):
             connect_link_data = customers.getCustomerAccounts(customerId)
-            print(connect_link_data, "THE LIIINKaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa DATA")
             organizedAccounts = customers.filter_and_organize_data(connect_link_data)
             df = pd.DataFrame(organizedAccounts)
             st.dataframe(df)
 
     if taskbar == "Accounts":
-        allowed_customers = auth.user_roles[user_role]["customers"]
-        print(f"Number of allowed customers: {len(allowed_customers)}")
+        query = f"""
+        SELECT CUSTOMER_ID
+        FROM TESTINGAI.USER_LOGS.USER_TABLE_MAPPING
+        WHERE USER_ID = '{user_role}';
+        """
+        allowed_customers = database.run_query(query)
+        allowed_customers_list = allowed_customers['CUSTOMER_ID'].tolist()
         
-        for customer_id in allowed_customers:
+        for customer_id in allowed_customers_list:
             if st.button(f"Get Positions for {customer_id}"):
                 try:
                     # Fetch accounts for the specific customer
