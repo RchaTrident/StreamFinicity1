@@ -7,6 +7,8 @@ from utils import auth, database, dateconverter
 from accounts import accounts
 import numpy as np
 import io
+
+
 @st.cache_resource
 def get_snowflake_connection():
     return database.get_snowflake_connection()
@@ -33,7 +35,7 @@ st.image("tridentlogo.png", use_column_width=True)
 def main():
     conn = get_snowflake_connection()
     user_role = st.session_state.get('user_role')
-
+    
     if 'logged_in' not in st.session_state:
         st.session_state['logged_in'] = False
     
@@ -41,6 +43,7 @@ def main():
         auth.login_page()
         return  
     if 'logged_in' in st.session_state:
+        database.log_user_login(user_role)
         auth.get_token()
     
     if user_role == "TRIDENT_TITUS":
@@ -122,6 +125,7 @@ def main():
                 
                     st.write("NOTE: It costs money each time you run a transaction or generate a statement. Please be conservative with how many requests you make! The date range and number of transactions do not matter, it is the frequency of requests we are charged on.")
                     st.write("NOTE: IF YOU CLICK DOWNLOAD WHILE THE PROGRAM RUNS, IT WILL INTERRUPT. WAIT UNTIL ALL ARE DOWNLOADED")
+                    
                     customerId = mapping_dict[0]["CUSTOMER_ID"]
 
                     if st.button("Generate Cashflows Report"):
@@ -285,82 +289,33 @@ def main():
                 try:
                     # Fetch accounts for the specific customer
                     customer_accounts = accounts.getCustomerAccounts(customer_id)
+                    print(customer_accounts)
+                    # Process the account data
+                    positions_df, accounts_df = accounts.process_account_positions(customer_accounts)
                     
-                    # Print the raw string for debugging
-                    print(f"Raw customer_accounts string: {customer_accounts[:100]}...")
+                    # Create Excel file
+                    excel_data = accounts.export_to_excel(positions_df, accounts_df, customer_id)
                     
-                    # Attempt to parse the string
-                    positions = []
+                    # Download button for Excel file
+                    st.download_button(
+                        label=f"Download Full Position Data for {customer_id}",
+                        data=excel_data,
+                        file_name=f"{customer_id}_full_positions.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
                     
-                    # Try parsing with json.loads first
-                    try:
-                        # Remove any leading/trailing whitespace
-                        customer_accounts = customer_accounts.strip()
-                        
-                        # Try JSON parsing
-                        accounts_data = json.loads(customer_accounts)
-                        
-                        # If successful, extract accounts
-                        if 'accounts' in accounts_data:
-                            for account in accounts_data['accounts']:
-                                # Extract position information
-                                position_info = {
-                                    'account_id': account.get('id', 'N/A'),
-                                    'number': account.get('number', 'N/A'),
-                                    'name': account.get('name', 'N/A'),
-                                    'balance': account.get('balance', 'N/A'),
-                                    'type': account.get('type', 'N/A')
-                                }
-                                positions.append(position_info)
+                    # Display preview of positions
+                    st.write("Positions Preview:")
+                    st.dataframe(positions_df)
                     
-                    except json.JSONDecodeError:
-                        # If JSON parsing fails, try ast.literal_eval
-                        try:
-                            accounts_data = ast.literal_eval(customer_accounts)
-                            
-                            # If it's a dictionary with 'accounts' key
-                            if isinstance(accounts_data, dict) and 'accounts' in accounts_data:
-                                for account in accounts_data['accounts']:
-                                    position_info = {
-                                        'account_id': account.get('id', 'N/A'),
-                                        'number': account.get('number', 'N/A'),
-                                        'name': account.get('name', 'N/A'),
-                                        'balance': account.get('balance', 'N/A'),
-                                        'type': account.get('type', 'N/A')
-                                    }
-                                    positions.append(position_info)
-                        
-                        except (ValueError, SyntaxError) as e:
-                            st.error(f"Could not parse accounts data: {e}")
-                            # Print the raw string for manual inspection
-                            st.error(f"Raw data: {customer_accounts}")
-                    
-                    # Convert positions to DataFrame
-                    if positions:
-                        df = pd.DataFrame(positions)
-                        
-                        # Create a CSV buffer
-                        csv_buffer = io.StringIO()
-                        df.to_csv(csv_buffer, index=False)
-                        
-                        # Download button for positions
-                        st.download_button(
-                            label=f"Download Accounts for {customer_id}",
-                            data=csv_buffer.getvalue(),
-                            file_name=f"{customer_id}_accounts.csv",
-                            mime="text/csv"
-                        )
-                        
-                        # Optional: Display accounts in app
-                        st.write(f"Accounts for {customer_id}:")
-                        st.dataframe(df)
-                    else:
-                        st.warning(f"No accounts found for customer {customer_id}")
+                    # Display preview of accounts
+                    st.write("Accounts Preview:")
+                    st.dataframe(accounts_df)
                     
                 except Exception as e:
-                    st.error(f"Error fetching accounts for customer {customer_id}: {e}")
-                    # Print the full traceback for more detailed debugging
+                    st.error(f"Error processing data for customer {customer_id}: {e}")
                     import traceback
                     st.error(traceback.format_exc())
+
 if __name__ == "__main__":
     main()

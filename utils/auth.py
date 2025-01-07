@@ -26,19 +26,29 @@ user_roles = {
     },
     "TRIDENT_LEE": {
         "tables": ["TESTINGAI.TESTINGAISCHEMA.TIOGA"],
-        "customers": ["Lee's Customer"]
+        "customers": ["7029496551"
+                     #IOGA
+                     ]
     }
     ,
     "TRIDENT_NATHAN": {
         "tables": ["TESTINGAI.TESTINGAISCHEMA.SUGAR_HILL"],
-        "customers": ["Lee's Customer"]
+        "customers": ["7034241431"
+                      #SUGAR HILL
+                      ]
     }
     ,
     "TRIDENT_TAYLOR": {
         "tables": ["TESTINGAI.TESTINGAISCHEMA.FORT_HILL", 
                    "TESTINGAI.TESTINGAISCHEMA.TIOGA",
                    "TESTINGAI.TESTINGAISCHEMA.PARALLAXES"],
-        "customers": ["Lee's Customer"]
+        "customers": ["7030215150",
+                     #FORT HILL
+                     "7029496551",
+                     #IOGA
+                     "7031524383"
+                     #PARALLAXES
+                     ]
     },
     "TRIDENT_TITUS": {
         "tables": ["TESTINGAI.TESTINGAISCHEMA.FORT_HILL", 
@@ -50,12 +60,43 @@ user_roles = {
                     #Booth_Laird
                     "7030755337",
                     #Alexium
+                    "7030895347"
+                    #stonegate
+                    ]
+    },
+    "TRIDENT_MARY_GRACE": {
+        "tables": ["TESTINGAI.TESTINGAISCHEMA.OAK"],
+        "customers": ["7030015086"
+                    # OAK
+                    ]
+    },
+    "TRIDENT_GREG_M": {
+        "tables": ["TESTINGAI.TESTINGAISCHEMA.LAS_OLAS"],
+        "customers": ["7030436524"
+                    # LAS_OLAS
+                    ]
+    },
+    "TRIDENT_CHELSEA": {
+        "tables": ["TESTINGAI.TESTINGAISCHEMA.CB_CAPITAL", 
+                   "TESTINGAI.TESTINGAISCHEMA.NMOSELY",
+                   "TESTINGAI.TESTINGAISCHEMA.NRD",
+                   "TESTINGAI.TESTINGAISCHEMA.TURTLE_CREEK"],
+        "customers": ["7030730065",
+                    # CB_CAPITAL
+                    "7030748192",
+                    #NMOSELEY
+                    "7030651030",
+                    #NRD
+                    "7030730100"
+                    #TURTLE_CREEK
                     ]
     }
 }
 
-def hash_password(password):
+def hash_password(password):#s
     return hashlib.sha256(password.encode()).hexdigest()
+
+
 
 def authenticate(username, password):
     stored_username = st.secrets.get(f"{username.upper()}_USERNAME")
