@@ -3,6 +3,7 @@ import hashlib
 import requests
 import json
 import streamlit.components.v1 as components
+from .database import log_user_login
 
 auth = {
     "prod": {
@@ -137,6 +138,7 @@ def login_page():
             st.error("Please enter both username and password")
         elif authenticate(username, password):
             st.session_state['logged_in'] = True
+            log_user_login(username)
             st.success("Logged in successfully!")
             st.rerun()  # Use st.rerun instead of st.experimental_rerun
         else:

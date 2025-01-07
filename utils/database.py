@@ -55,7 +55,7 @@ def create_statements_table_if_not_exists(fund_name):
 
 def log_user_login(user_id):
     login_date = datetime.now().date()
-    login_time = (datetime.now() - timedelta(hours=4)).time()
+    login_time = (datetime.now() - timedelta(hours=5)).time()
     query = f"""
     INSERT INTO TESTINGAI.USER_LOGS.{user_id} (USER_ID, LOGIN_DATE, LOGIN_TIME)
     VALUES (%s, %s, %s)

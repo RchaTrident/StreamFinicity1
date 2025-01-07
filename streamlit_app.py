@@ -43,7 +43,7 @@ def main():
         auth.login_page()
         return  
     if 'logged_in' in st.session_state:
-        database.log_user_login(user_role)
+        
         auth.get_token()
     
     if user_role == "TRIDENT_TITUS":
