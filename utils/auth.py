@@ -20,6 +20,8 @@ auth = {
     "url": st.secrets["FINICITY_URL"]
 }
 
+admins = json.loads(st.secrets["ADMINS"])
+
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
@@ -96,7 +98,7 @@ def display_content():
     if user_role:
         st.write(f"Logged in as: {user_role}")
         
-        if user_role == 'FINICITYTTUS':
+        if user_role in admins:
             query = """
             SELECT TABLE_NAME 
             FROM INFORMATION_SCHEMA.TABLES 

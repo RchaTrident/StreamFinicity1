@@ -44,19 +44,12 @@ def main():
     if 'logged_in' in st.session_state:
         
         auth.get_token()
-        
-    if user_role == "TRIDENT_TITUS":
-        taskbar = st.sidebar.radio(
+
+    taskbar = st.sidebar.radio(
         "Navigation",
-        ("Reports", "Institutions", "Customers", "Accounts"),
+        ("Reports", "Institutions", "Customers", "Accounts", "AI (Coming soon!)", "Issue? Report it here"),
         index=st.session_state.get('taskbar_index', 0)
     )
-    else:
-        taskbar = st.sidebar.radio(
-            "Navigation",
-            ("Reports", "Institutions", "Customers"),
-            index=st.session_state.get('taskbar_index', 0)
-        )
     # print("--------------------------------------------------------")
     print("Current session state login status:", st.session_state["user_role"], st.session_state["logged_in"])
     # if st.button("Reset Session State"):
@@ -64,7 +57,7 @@ def main():
     #     st.success("Session state reset except 'user_role' and 'logged_in'")
     if st.sidebar.button("Logout"):
         auth.logout()
-    # st.session_state['taskbar_index'] = ["Reports", "Institutions", "Customers"].index(taskbar)
+    st.sidebar.write(f"Logged in as: {user_role}")
 
     if taskbar == "Reports":
         st.title("Reports")
@@ -236,7 +229,7 @@ def main():
             allowed_cust = database.run_query(query)
             allowed_customers = allowed_cust['CUSTOMER_ID'].tolist()
             print(allowed_customers)
-            if user_role == "FINICITYTTUS":
+            if user_role in auth.admins:
                 st.dataframe(allowed_customers)
             else:
                 for i in connect_link_data:
@@ -292,6 +285,119 @@ def main():
                     st.error(f"Error processing data for customer {customer_id}: {e}")
                     import traceback
                     st.error(traceback.format_exc())
+
+    if taskbar == "AI (Coming soon!)":
+        st.write("""
+                    # Proposed AI models:
+                    RNN: Designed for processing sequential data. Good for series forecasting
+                    
+                    LSTM: a larger version of RNN, used for longer time periods (longer than 2 years)
+                    
+                    Llama: Facebook produced AI, good all purpose open source with ample support. a GPT style model though, would require more resources.
+                    
+                    # Step 1: Prepare Your Model
+                    Save Your Model: Ensure your model is saved in a format that Snowflake supports, such as a serialized file (e.g., .pkl for Python models).
+                    
+                    # Step 2: Upload Your Model to Snowflake
+                    Create a Stage: A stage is a location in Snowflake where you can store files.
+                    CREATE OR REPLACE STAGE my_stage;
+                    Upload Your Model File: Use the SnowSQL command-line tool or the Snowflake web interface to upload your model file to the stage.
+
+                    snowsql -q "PUT file://path_to_your_model_file @my_stage";
+                    
+                    # Step 3: Register Your Model
+                    Create a Table to Store the Model:
+
+                    CREATE OR REPLACE TABLE my_models (
+                        model_name STRING,
+                        model VARIANT
+                    );
+                    Insert Your Model into the Table:
+
+                    INSERT INTO my_models (model_name, model)
+                    SELECT 'my_model', PARSE_JSON($1)
+                    FROM @my_stage/your_model_file;
+                    
+                    # Step 4: Use Your Model
+                    Load Your Model: Use Snowflake's Python integration (Snowpark) to load and use your model.
+                    import snowflake.snowpark as snowpark
+                    import pickle
+
+                    # instructions:
+                    ## Create a Snowpark session
+                    session = snowpark.Session.builder.configs(your_config).create()
+
+                    ## Load the model from the table
+                    model_row = session.table("my_models").filter("model_name = 'my_model'").collect()[0]
+                    model = pickle.loads(model_row['model'])
+
+                    ## Use the model for predictions
+                    predictions = model.predict(your_data)
+                    Additional Resources
+                    Snowflake Documentation: Detailed guides on using stages and Snowpark12.
+                    Snowflake Cortex: Explore advanced AI features and integrations1.
+                    """)  
+        body = st.text_input("Thoughts? write them here")
+        login_date = datetime.now().date()
+        login_time = (datetime.now() - timedelta(hours=5)).time()
+        query = f"""
+        INSERT INTO TESTINGAI.SUPPORT.AI (USER_ROLE, POSTED_DATE, POSTED_TIME,
+        BODY) 
+        VALUES (%s, %s, %s, %s)
+        """
+        params = (user_role, login_date, login_time, body)
+        if st.button("Submit"):
+            database.run_query(query, params)
+            st.success("Data inserted successfully!")
+
+
+    if taskbar == "Issue? Report it here":
+        if user_role in auth.admins:
+            login_date = datetime.now().date()
+            login_time = (datetime.now() - timedelta(hours=5)).time()
+            query_general = """
+            SELECT USER_ROLE, POSTED_DATE, POSTED_TIME, BODY
+            FROM TESTINGAI.SUPPORT.GENERAL
+            """
+
+            query_ai = """
+            SELECT USER_ROLE, POSTED_DATE, POSTED_TIME, BODY
+            FROM TESTINGAI.SUPPORT.AI
+            """
+            result_general = database.run_query(query_general)
+            result_ai = database.run_query(query_ai)
+
+            if result_general is not None and not result_general.empty:
+                st.write("Data from TESTINGAI.SUPPORT.GENERAL:")
+                st.write(result_general)
+            else:
+                st.warning("No data found in TESTINGAI.SUPPORT.GENERAL.")
+
+            if result_ai is not None and not result_ai.empty:
+                st.write("Data from TESTINGAI.SUPPORT.AI:")
+                st.write(result_ai)
+            else:
+                st.warning("No data found in TESTINGAI.SUPPORT.AI.")
+        else:
+            body = st.text_input("Please enter problems or feedback here")
+            login_date = datetime.now().date()
+            login_time = (datetime.now() - timedelta(hours=5)).time()
+            query = """
+            INSERT INTO TESTINGAI.SUPPORT.GENERAL (USER_ROLE, POSTED_DATE, POSTED_TIME, BODY)
+            VALUES (%s, %s, %s, %s)
+            """
+            params = (user_role, login_date, login_time, body)
+            if body:
+                result = database.run_query(query, params)
+                if result is not None:
+                    st.success("Data inserted successfully!")
+                else:
+                    st.error("Failed to insert data.")
+            else:
+                st.warning("Please enter your thoughts before submitting.")
+            
+
+            
 
 if __name__ == "__main__":
     main()
