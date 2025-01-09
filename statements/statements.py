@@ -4,7 +4,7 @@ import requests
 import json
 from utils.auth import get_token, auth
 from utils.dateconverter import dateConverter
-from utils.database import run_query, create_statements_table_if_not_exists
+from utils.database import run_query, create_statements_table_if_not_exists, log_user_login
 from datetime import datetime, timedelta, timezone
 import os
 import uuid
@@ -108,3 +108,4 @@ def display_download_buttons():
     if data:
         df = pd.DataFrame(data)
         st.write(df.to_html(escape=False), unsafe_allow_html=True)
+     

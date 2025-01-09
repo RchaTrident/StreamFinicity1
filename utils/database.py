@@ -53,13 +53,35 @@ def create_statements_table_if_not_exists(fund_name):
     """
     run_query(create_table_query)
 
-def log_user_login(user_id):
+def log_user_login(user_id, transactions=None, statements=None):
     login_date = datetime.now().date()
     login_time = (datetime.now() - timedelta(hours=5)).time()
-    query = f"""
-    INSERT INTO TESTINGAI.USER_LOGS.{user_id} (USER_ID, LOGIN_DATE, LOGIN_TIME)
-    VALUES (%s, %s, %s)
-    """
-    params = (user_id, login_date, login_time)
+    
+    # Adjust the query based on whether transactions and statements are provided
+    if transactions is not None and statements is not None:
+        query = f"""
+        INSERT INTO TESTINGAI.USER_LOGS.{user_id} (USER_ID, LOGIN_DATE, LOGIN_TIME, TRANSACTIONS, STATEMENTS)
+        VALUES (%s, %s, %s, %s, %s)
+        """
+        params = (user_id, login_date, login_time, transactions, statements)
+    elif transactions is not None:
+        query = f"""
+        INSERT INTO TESTINGAI.USER_LOGS.{user_id} (USER_ID, LOGIN_DATE, LOGIN_TIME, TRANSACTIONS)
+        VALUES (%s, %s, %s, %s)
+        """
+        params = (user_id, login_date, login_time, transactions)
+    elif statements is not None:
+        query = f"""
+        INSERT INTO TESTINGAI.USER_LOGS.{user_id} (USER_ID, LOGIN_DATE, LOGIN_TIME, STATEMENTS)
+        VALUES (%s, %s, %s, %s)
+        """
+        params = (user_id, login_date, login_time, statements)
+    else:
+        query = f"""
+        INSERT INTO TESTINGAI.USER_LOGS.{user_id} (USER_ID, LOGIN_DATE, LOGIN_TIME)
+        VALUES (%s, %s, %s)
+        """
+        params = (user_id, login_date, login_time)
+    
     run_query(query, params)
 

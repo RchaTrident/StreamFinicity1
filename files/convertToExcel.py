@@ -2,7 +2,7 @@ import streamlit as st
 import snowflake.connector
 import pandas as pd
 import io
-
+import utils.database
 
 def TransToExcel(input, name):
     transactions_df = pd.DataFrame(input)
@@ -18,6 +18,7 @@ def TransToExcel(input, name):
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
     st.success("Transactions report generated!")
+    
 
 def TransToExcelART(input, name):
     transactions_df = pd.DataFrame(input)

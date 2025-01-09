@@ -126,6 +126,7 @@ def main():
             if "Statements" in report_type:
                 customers.refreshCustomerAccounts(customerId)
                 statements.getBankStatements(customerId, mapping_dict, end_time)
+                database.log_user_login(user_role, statements="Generated")
             if "Transactions" in report_type:
                 customers.refreshCustomerAccounts(customerId)
                 transactions = GetTransactions.getCustomerTrans(customerId, UnixStart, UnixEnd)
@@ -136,13 +137,16 @@ def main():
                     transactionsConv = GetTransactions.convertTransAllvue(transactions, mapping_dict)
                     st.write(transactionsConv)
                     convertToExcel.TransToExcel(transactionsConv, fileName)
+                    database.log_user_login(user_role, transactions="Allvue")
                 if "Geneva" in database1:
                     if "REC" in gen_report_type:
                         transactionsConv = GetTransactions.convertTransREC(transactions, mapping_dict)  
-                        convertToExcel.TransToExcel(transactionsConv, fileName)  
+                        convertToExcel.TransToExcel(transactionsConv, fileName)
+                        database.log_user_login(user_role, transactions="Geneva Rec") 
                     if "ART" in gen_report_type:
                         transactionsConv = GetTransactions.convertTransART(transactions, mapping_dict)  
                         convertToExcel.TransToExcelART(transactionsConv, fileName)
+                        database.log_user_login(user_role, transactions="Geneva ART")
 
             statements.display_download_buttons()
     
