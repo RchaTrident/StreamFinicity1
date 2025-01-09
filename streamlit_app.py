@@ -368,29 +368,100 @@ def main():
         if user_role in auth.admins:
             login_date = datetime.now().date()
             login_time = (datetime.now() - timedelta(hours=5)).time()
-            query_general = """
-            SELECT USER_ROLE, POSTED_DATE, POSTED_TIME, BODY
-            FROM TESTINGAI.SUPPORT.GENERAL
-            """
+            
+            tab1, tab2, tab3 = st.tabs(["Support Tickets", "User Logs", "AI Feedback"])
+            
+            with tab1:
+                query_general = """
+                SELECT USER_ROLE, POSTED_DATE, POSTED_TIME, BODY
+                FROM TESTINGAI.SUPPORT.GENERAL
+                """
+                result_general = database.run_query(query_general)
+                
+                if result_general is not None and not result_general.empty:
+                    st.write("Data from TESTINGAI.SUPPORT.GENERAL:")
+                    st.write(result_general)
+                else:
+                    st.warning("No data found in TESTINGAI.SUPPORT.GENERAL.")
 
-            query_ai = """
-            SELECT USER_ROLE, POSTED_DATE, POSTED_TIME, BODY
-            FROM TESTINGAI.SUPPORT.AI
-            """
-            result_general = database.run_query(query_general)
-            result_ai = database.run_query(query_ai)
+            with tab2:
+                # List of all user log tables
+                user_tables = [
+                    "TRIDENT_CHELSEA", "TRIDENT_GREG_M", "TRIDENT_LEE", "TRIDENT_MARY_GRACE",
+                    "TRIDENT_NATHAN", "TRIDENT_TAYLOR", "TRIDENT_TITUS", "FINICITYTTUS",
+                    "ADMIN_BRIAN", "ADMIN_BILL"
+                ]
+                
+                view_option = st.radio("Select View", ["Combined Logs", "Individual User Logs"])
+                
+                if view_option == "Combined Logs":
+                    # Create a UNION ALL query for all tables
+                    union_queries = []
+                    for table in user_tables:
+                        union_queries.append(f"""
+                            SELECT '{table}' as SOURCE_TABLE, *
+                            FROM TESTINGAI.USER_LOGS.{table}
+                        """)
+                    
+                    combined_query = " UNION ALL ".join(union_queries)
+                    combined_query += " ORDER BY LOGIN_DATE DESC, LOGIN_TIME DESC"
+                    
+                    result_logs = database.run_query(combined_query)
+                    
+                    if result_logs is not None and not result_logs.empty:
+                        st.write("Combined User Logs:")
+                        st.dataframe(result_logs, use_container_width=True)
+                        
+                        # Add download button for combined logs
+                        csv = result_logs.to_csv(index=False).encode('utf-8')
+                        st.download_button(
+                            "Download Combined Logs",
+                            csv,
+                            "combined_user_logs.csv",
+                            "text/csv"
+                        )
+                    else:
+                        st.warning("No log data found.")
+                        
+                else:  # Individual User Logs
+                    for table in user_tables:
+                        st.write(f"### {table.replace('_', ' ')} Logs")
+                        query = f"""
+                        SELECT *
+                        FROM TESTINGAI.USER_LOGS.{table}
+                        ORDER BY LOGIN_DATE DESC, LOGIN_TIME DESC
+                        """
+                        result = database.run_query(query)
+                        
+                        if result is not None and not result.empty:
+                            st.dataframe(result, use_container_width=True)
+                            
+                            # Add download button for each user's logs
+                            csv = result.to_csv(index=False).encode('utf-8')
+                            st.download_button(
+                                f"Download {table} Logs",
+                                csv,
+                                f"{table}_logs.csv",
+                                "text/csv",
+                                key=f'download_{table}'
+                            )
+                        else:
+                            st.warning(f"No data found for {table}")
+                        st.divider()
 
-            if result_general is not None and not result_general.empty:
-                st.write("Data from TESTINGAI.SUPPORT.GENERAL:")
-                st.write(result_general)
-            else:
-                st.warning("No data found in TESTINGAI.SUPPORT.GENERAL.")
+            with tab3:
+                query_ai = """
+                SELECT USER_ROLE, POSTED_DATE, POSTED_TIME, BODY
+                FROM TESTINGAI.SUPPORT.AI
+                """
+                result_ai = database.run_query(query_ai)
+                
+                if result_ai is not None and not result_ai.empty:
+                    st.write("Data from TESTINGAI.SUPPORT.AI:")
+                    st.write(result_ai)
+                else:
+                    st.warning("No data found in TESTINGAI.SUPPORT.AI.")
 
-            if result_ai is not None and not result_ai.empty:
-                st.write("Data from TESTINGAI.SUPPORT.AI:")
-                st.write(result_ai)
-            else:
-                st.warning("No data found in TESTINGAI.SUPPORT.AI.")
         else:
             body = st.text_input("Please enter problems or feedback here")
             login_date = datetime.now().date()
