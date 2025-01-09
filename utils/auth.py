@@ -39,36 +39,38 @@ def authenticate(username, password):
         return False
 
 def login_page():
-    st.title("Login")
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
-    
-    # Custom HTML to trigger input events
-    components.html("""
-        <script>
-            const usernameInput = document.querySelector('input[aria-label="Username"]');
-            const passwordInput = document.querySelector('input[aria-label="Password"]');
-            
-            usernameInput.addEventListener('input', () => {
-                usernameInput.dispatchEvent(new Event('change', { bubbles: true }));
-            });
-            
-            passwordInput.addEventListener('input', () => {
-                passwordInput.dispatchEvent(new Event('change', { bubbles: true }));
-            });
-        </script>
-    """, height=0)
-    
-    if st.button("Login"):
-        if not username or not password:
-            st.error("Please enter both username and password")
-        elif authenticate(username, password):
-            st.session_state['logged_in'] = True
-            log_user_login(username)
-            st.success("Logged in successfully!")
-            st.rerun() 
-        else:
-            st.error("Invalid credentials")
+    left_col, main_col, right_col = st.columns([1, 3, 1])
+    with main_col:
+        st.title("Login")
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        
+        # Custom HTML to trigger input events
+        components.html("""
+            <script>
+                const usernameInput = document.querySelector('input[aria-label="Username"]');
+                const passwordInput = document.querySelector('input[aria-label="Password"]');
+                
+                usernameInput.addEventListener('input', () => {
+                    usernameInput.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+                
+                passwordInput.addEventListener('input', () => {
+                    passwordInput.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+            </script>
+        """, height=0)
+        
+        if st.button("Login"):
+            if not username or not password:
+                st.error("Please enter both username and password")
+            elif authenticate(username, password):
+                st.session_state['logged_in'] = True
+                log_user_login(username)
+                st.success("Logged in successfully!")
+                st.rerun() 
+            else:
+                st.error("Invalid credentials")
 
 def logout():
     st.session_state['logged_in'] = False
