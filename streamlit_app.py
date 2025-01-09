@@ -32,6 +32,15 @@ def prettify_name(name):
 st.image("tridentlogo.png", use_column_width=True)
 
 
+hide_menu_style = """
+        <style>
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+        </style>
+        """
+st.markdown(hide_menu_style, unsafe_allow_html=True)
+
 def main():
     conn = get_snowflake_connection()
     user_role = st.session_state.get('user_role')
