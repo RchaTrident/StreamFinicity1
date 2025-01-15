@@ -4,3 +4,12 @@ backgroundColor="#FFFFFF"
 secondaryBackgroundColor="#F0F2F6"
 textColor="#233982"
 font="sans serif"
+
+[server]
+enableStaticServing = false
+
+[global]
+showWarningOnDirectExecution = false
+
+[browser]
+gatherUsageStats = false

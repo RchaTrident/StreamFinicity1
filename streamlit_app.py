@@ -1,7 +1,7 @@
 import streamlit as st
 import stylings
 st.set_page_config(
-    page_title="Fintech Dashboard",
+    page_title="Finicity Trident Trust",
     page_icon="tridentlogo.png",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -50,13 +50,6 @@ hide_menu_style = """
         """
 st.markdown(hide_menu_style, unsafe_allow_html=True)
 
-hide_streamlit_style = """
-            <style>
-            [data-testid="stToolbar"] {visibility: hidden !important;}
-            .viewerBadge_container__1QSob {display: none !important;}
-            </style>
-            """
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 def main():
     stylings.init_styling()

@@ -6,13 +6,12 @@ custom_css = """
         /* Main container styling */
         .main {
             padding: 1rem;
-            background-color: #ffffff
-            
+            background-color: #f8f9fa;
         }
         
         /* Card styling for containers */
         .stApp {
-            background-color: #ffffff
+            background-color: #f8f9fa;
         }
         
         /* Sidebar styling */
