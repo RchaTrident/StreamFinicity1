@@ -66,7 +66,7 @@ def main():
 
     taskbar = st.sidebar.radio(
         "Navigation",
-        ("Reports", "Institutions", "Customers", "Accounts", "AI (Coming soon!)", "Issue? Report it here"),
+        ("Reports", "Institutions", "Customers", "Accounts", "Issue? Report it here"),
         index=st.session_state.get('taskbar_index', 0)
     )
     # print("--------------------------------------------------------")
@@ -246,9 +246,22 @@ def main():
                 st.write("Please input the customer Id.")
 
             if st.button("Display All Customers"):
-                
-                connect_link_data = customers.getcustomers()
-                print(connect_link_data)
+                customerEditMap = {
+                    "7026859829" : "Comerica",
+                    "7029249040": "Phorcys",
+                    "7029496551": "TIOGA",
+                    "7029508303": "MVP"
+                }
+                connect_link_data = [
+                        {
+                            "id": i["id"],
+                            "username": customerEditMap[i["id"]] if i["id"] in customerEditMap else i["username"],
+                            "createdDate": i["createdDate"],
+                            "type": i["type"]
+                        }
+                        for i in customers.getcustomers()
+                    ]
+
                 customers = []
                 query = f"""
                 SELECT CUSTOMER_ID
@@ -257,12 +270,13 @@ def main():
                 """
                 allowed_cust = database.run_query(query)
                 allowed_customers = allowed_cust['CUSTOMER_ID'].tolist()
-                print(allowed_customers)
+                
                 if user_role in auth.admins:
-                    st.dataframe(allowed_customers)
+                    st.dataframe(connect_link_data)
                 else:
                     for i in connect_link_data:
                         if i["id"] in allowed_customers:
+                            
                             customers.append(i)
 
                 st.dataframe(customers)

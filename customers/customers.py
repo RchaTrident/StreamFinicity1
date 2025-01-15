@@ -110,4 +110,34 @@ def refreshCustomerAccounts(customerId):
     auth['headers']['Finicity-App-Token'] = token
     response = requests.get(url=f"{auth['url']}/aggregation/v1/customers/{customerId}/accounts",headers = auth['headers'])
 
-print(refreshCustomerAccounts(7030895347))
+def editCustomer(customerId,firstName,lastName):
+    token = get_token()
+    auth['headers']['Finicity-App-Token'] = 'token'
+    body = {
+            "firstName": firstName,
+            "lastName": lastName
+            }
+    response = requests.put(url=f"{auth['url']}/aggregation/v1/customers/{customerId}", headers = auth['headers'], json=body)
+    data = response.json()
+    accounts = data['accounts']
+    for account in accounts:
+        if 'detail' in account and account['detail']:
+            formatted_detail = {}
+            for key, value in account['detail'].items():
+                
+                formatted_key = ' '.join(word.capitalize() for word in re.findall('[A-Z]?[a-z]+', key))
+                formatted_detail[formatted_key] = value
+            account['detail'] = formatted_detail
+    return accounts
+
+def deleteCustomer(customerId):
+    token = get_token()
+    response = requests.delete(url=f"{auth['url']}/aggregation/v1/customers/{customerId}",headers = auth['headers'] )
+    print(response)
+    return response
+
+
+
+
+
+
