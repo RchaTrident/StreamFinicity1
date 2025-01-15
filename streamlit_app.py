@@ -44,12 +44,15 @@ with center_column[1]:  # Using the middle 40% column
 hide_menu_style = """
         <style>
         #MainMenu {visibility: hidden;}
-        .stDeployButton{display: none;}
+        .stDeployButton {display: none;}
         header {visibility: hidden;}
         footer {visibility: hidden;}
         footer {content: none;}
-        
-        
+        #GithubIcon {visibility: hidden;}
+        div[data-testid="stStreamlitFooter"] {visibility: hidden;}
+        ._container_gzau3_1 {display: none;}
+        ._viewerBadge_nim44_23 {display: none;}
+        ._profileContainer_gzau3_53 {display: none;}
         </style>
         """
 st.markdown(hide_menu_style, unsafe_allow_html=True)
