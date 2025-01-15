@@ -278,8 +278,8 @@ def main():
                         if i["id"] in allowed_customers:
                             
                             customers.append(i)
-
-                st.dataframe(customers)
+                            st.dataframe(customers)
+                
 
             if st.button("Get Customer Accounts"):
                 connect_link_data = customers.getCustomerAccounts(customerId)
