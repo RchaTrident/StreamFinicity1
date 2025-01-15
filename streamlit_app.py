@@ -50,14 +50,13 @@ hide_menu_style = """
         """
 st.markdown(hide_menu_style, unsafe_allow_html=True)
 
-hide_st_style = """
+hide_streamlit_style = """
             <style>
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
-            header {visibility: hidden;}
+            [data-testid="stToolbar"] {visibility: hidden !important;}
+            .viewerBadge_container__1QSob {display: none !important;}
             </style>
             """
-st.markdown(hide_st_style, unsafe_allow_html=True)
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 def main():
     stylings.init_styling()
