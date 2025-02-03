@@ -10,7 +10,8 @@ import pandas as pd
 from datetime import datetime, timedelta, timezone
 import uuid
 import json
-from utils import auth, database, dateconverter
+from utils.auth import auth, login_page, logout, display_content, get_token
+from utils import database, dateconverter
 from accounts import accounts
 import numpy as np
 import io
@@ -62,11 +63,11 @@ def main():
         st.session_state['logged_in'] = False
     
     if not st.session_state['logged_in']:
-        auth.login_page()
+        login_page()
         return  
     if 'logged_in' in st.session_state:
         
-        auth.get_token()
+        get_token()
 
     taskbar = st.sidebar.radio(
         "Navigation",
@@ -79,14 +80,14 @@ def main():
     #     reset_session_state(['user_role', 'logged_in'])
     #     st.success("Session state reset except 'user_role' and 'logged_in'")
     if st.sidebar.button("Logout"):
-        auth.logout()
+        logout()
     st.sidebar.write(f"Logged in as: {user_role}")
 
     if taskbar == "Reports":
         left_col, main_col, right_col = st.columns([1, 3, 1])
         with main_col:
             st.title("Reports")
-            table_names = auth.display_content()
+            table_names = display_content()
             fund_name = st.selectbox("Fund Name", table_names, index=st.session_state.get('fund_name_index', 0))
             pretty_fund_name = prettify_name(fund_name)
             st.write(f"You selected: {pretty_fund_name}")
@@ -302,9 +303,11 @@ def main():
             if user_role in auth.admins:
                 allowed_customers = accounts.allAccounts()
                 st.write(allowed_customers)
+                print(allowed_customers)
             else:
                 allowed_customers = database.run_query(query)
                 allowed_customers_list = allowed_customers['CUSTOMER_ID'].tolist()
+                print(allowed_customers)
                 
                 for customer_id in allowed_customers_list:
                     if st.button(f"Get Positions for {customer_id}"):
