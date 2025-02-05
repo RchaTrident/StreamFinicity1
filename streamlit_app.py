@@ -10,7 +10,7 @@ import pandas as pd
 from datetime import datetime, timedelta, timezone
 import uuid
 import json
-from utils.auth import auth, login_page, logout, display_content, get_token
+from utils.auth import auth, login_page, logout, display_content, get_token, admins
 from utils import database, dateconverter
 from accounts import accounts
 import numpy as np
@@ -30,6 +30,23 @@ def reset_session_state(except_keys):
     for key in list(st.session_state.keys()):
         if key not in except_keys:
             del st.session_state[key]
+
+def reset_transaction_state():
+    """Reset all transaction and report related state variables."""
+    keys_to_keep = ['user_role', 'logged_in', 'taskbar_index', 'fund_name_index']
+    
+    # Clear session state except for essential login and navigation variables
+    for key in list(st.session_state.keys()):
+        if key not in keys_to_keep:
+            del st.session_state[key]
+    
+    # Clear any stored transaction data
+    if 'current_transactions' in st.session_state:
+        del st.session_state['current_transactions']
+    
+    # Clear any stored report data
+    if 'current_report' in st.session_state:
+        del st.session_state['current_report']
 
 def prettify_name(name):
     """Converts a string like 'customer_transactions_parallaxes_capital_llc' to 'Parallaxes Capital LLC'."""
@@ -56,6 +73,7 @@ st.markdown(hide_menu_style, unsafe_allow_html=True)
 
 
 def main():
+    # st.json(st.session_state)
     stylings.init_styling()
     conn = get_snowflake_connection()
     user_role = st.session_state.get('user_role')
@@ -120,6 +138,7 @@ def main():
             st.write("NOTE: IF YOU CLICK DOWNLOAD WHILE THE PROGRAM RUNS, IT WILL INTERRUPT. WAIT UNTIL ALL ARE DOWNLOADED")
 
             customerId = mapping_dict[0]["CUSTOMER_ID"]
+
             if st.button("Generate Cashflows Report"):
                 query = f"SELECT ACCOUNT_ID FROM {fund_name}" 
                 account_mapping_df = database.run_query(query)
@@ -140,10 +159,13 @@ def main():
                     st.write(cashflows.makeConsumer(customerId, fundName))
                     st.write(cashflows.cashflowAna(customerId,"business", fromDate, account_ids))
 
-            if st.button("Generate Report"):
-                reset_session_state(['user_role', 'logged_in'])
-                st.success("Session state reset except 'user_role' and 'logged_in'")
+            # if st.button("reset state"):
+            #     reset_session_state(['user_role', 'logged_in'])
+            #     st.success("Session state reset except 'user_role' and 'logged_in'")
 
+            if st.button("Generate Report"):
+                reset_transaction_state()  # Clear previous transaction data
+                
                 from customers import customers
                 from transactions import GetTransactions
                 from files import convertToExcel
@@ -153,12 +175,17 @@ def main():
                     customers.refreshCustomerAccounts(customerId)
                     statements.getBankStatements(customerId, mapping_dict, end_time)
                     database.log_user_login(user_role, statements="Generated")
+                    
                 if "Transactions" in report_type:
                     customers.refreshCustomerAccounts(customerId)
                     transactions = GetTransactions.getCustomerTrans(customerId, UnixStart, UnixEnd)
                     transactions = transactions['transactions']
                     fundName = mapping_dict[0]["FUND_NAME"]
                     fileName = f"{fundName}_{end_time[5:10]}_transactions"
+                    
+                    # Store current transactions in session state
+                    st.session_state['current_transactions'] = transactions
+                    
                     if "Allvue" in database1:
                         transactionsConv = GetTransactions.convertTransAllvue(transactions, mapping_dict)
                         st.write(transactionsConv)
@@ -174,6 +201,7 @@ def main():
                             convertToExcel.TransToExcelART(transactionsConv, fileName)
                             database.log_user_login(user_role, transactions="Geneva ART")
 
+                # Clear any previous download buttons before displaying new ones
                 statements.display_download_buttons()
     
     if taskbar == "Institutions":
@@ -245,7 +273,7 @@ def main():
 
             customerId = st.text_input("input the customer Id")
             if st.button("Generate Connect Link"):
-                connect_link_data = customers.generateConnectLink(customerId, auth.auth["prod"]["pId"])
+                connect_link_data = customers.generateConnectLink(customerId, auth["prod"]["pId"])
                 st.write(connect_link_data)
             else:
                 st.write("Please input the customer Id.")
@@ -276,7 +304,7 @@ def main():
                 allowed_cust = database.run_query(query)
                 allowed_customers = allowed_cust['CUSTOMER_ID'].tolist()
                 
-                if user_role in auth.admins:
+                if user_role in admins:
                     st.dataframe(connect_link_data)
                 else:
                     for i in connect_link_data:
@@ -300,7 +328,7 @@ def main():
             FROM TESTINGAI.USER_LOGS.USER_TABLE_MAPPING
             WHERE USER_ID = '{user_role}';
             """
-            if user_role in auth.admins:
+            if user_role in admins:
                 allowed_customers = accounts.allAccounts()
                 st.write(allowed_customers)
                 print(allowed_customers)
@@ -412,7 +440,7 @@ def main():
     if taskbar == "Issue? Report it here":
         left_col, main_col, right_col = st.columns([1, 3, 1])
         with main_col:
-            if user_role in auth.admins:
+            if user_role in admins:
                 login_date = datetime.now().date()
                 login_time = (datetime.now() - timedelta(hours=5)).time()
                 

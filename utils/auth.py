@@ -8,17 +8,16 @@ from .database import log_user_login, run_query
 
 auth = {
     "prod": {
-        "pId": st.secrets["finicity"]["PARTNER_ID"],
-        "secret": st.secrets["finicity"]["SECRET"],
-        "key": st.secrets["finicity"]["KEY"]
+        "pId": st.secrets.finicity["PARTNER_ID"],
+        "secret": st.secrets.finicity["SECRET"], 
+        "key": st.secrets.finicity["KEY"]
     },
     "headers": {
-        'Finicity-App-Key': st.secrets["finicity"]["KEY"],
+        'Finicity-App-Key': st.secrets.finicity["KEY"],
         'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Finicity-App-Token': 'AwardyN4OiUHD6oNJleQ'
+        'Content-Type': 'application/json'
     },
-    "url": st.secrets["finicity"]["URL"]
+    "url": st.secrets.finicity["URL"]
 }
 
 admins = st.secrets["admin"]["USERS"]

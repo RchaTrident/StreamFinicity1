@@ -107,8 +107,10 @@ def filter_and_organize_data(data):
 
 def refreshCustomerAccounts(customerId):
     token = get_token()
+    # token = "q4LHFza5t3OramuPsOMU"
     auth['headers']['Finicity-App-Token'] = token
-    response = requests.get(url=f"{auth['url']}/aggregation/v1/customers/{customerId}/accounts",headers = auth['headers'])
+    response = requests.post(url=f"{auth['url']}/aggregation/v1/customers/{customerId}/accounts",headers = auth['headers'])
+    # print(response, "THISONEISPOST______________________THISONEISPOST___________________THISONSISPOST_____________")
 
 def editCustomer(customerId,firstName,lastName):
     token = get_token()
