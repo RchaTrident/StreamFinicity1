@@ -15,6 +15,7 @@ from utils import database, dateconverter
 from accounts import accounts
 import numpy as np
 import io
+import time
 
 
 @st.cache_resource
@@ -75,7 +76,7 @@ st.markdown(hide_menu_style, unsafe_allow_html=True)
 def main():
     if 'current_transactions' not in st.session_state:
         st.session_state.current_transactions = None
-    st.json(st.session_state)
+    # st.json(st.session_state)
     stylings.init_styling()
     conn = get_snowflake_connection()
     user_role = st.session_state.get('user_role')
@@ -168,6 +169,7 @@ def main():
 
             if st.button("Generate Report"):
                 st.session_state.current_transactions = None
+                time.sleep(5)
                 # reset_transaction_state() 
                 
                 from customers import customers
@@ -221,13 +223,13 @@ def main():
                 # Display download buttons after processing
                 statements.display_download_buttons()
 
-    with st.expander("Debug Transaction State"):
-        st.write("Current Transactions in State:", 
-                "None" if st.session_state.current_transactions is None 
-                else f"Contains {len(st.session_state.current_transactions)} transactions")
-        if st.button("Clear Transaction State"):
-            st.session_state.current_transactions = None
-            st.success("Transaction state cleared")    
+    # with st.expander("Debug Transaction State"):
+    #     st.write("Current Transactions in State:", 
+    #             "None" if st.session_state.current_transactions is None 
+    #             else f"Contains {len(st.session_state.current_transactions)} transactions")
+    #     if st.button("Clear Transaction State"):
+    #         st.session_state.current_transactions = None
+    #         st.success("Transaction state cleared")    
     
     if taskbar == "Institutions":
         left_col, main_col, right_col = st.columns([1, 3, 1])
