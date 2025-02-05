@@ -73,10 +73,13 @@ st.markdown(hide_menu_style, unsafe_allow_html=True)
 
 
 def main():
-    # st.json(st.session_state)
+    if 'current_transactions' not in st.session_state:
+        st.session_state.current_transactions = None
+    st.json(st.session_state)
     stylings.init_styling()
     conn = get_snowflake_connection()
     user_role = st.session_state.get('user_role')
+
     if 'logged_in' not in st.session_state:
         st.session_state['logged_in'] = False
     
@@ -159,12 +162,13 @@ def main():
                     st.write(cashflows.makeConsumer(customerId, fundName))
                     st.write(cashflows.cashflowAna(customerId,"business", fromDate, account_ids))
 
-            # if st.button("reset state"):
-            #     reset_session_state(['user_role', 'logged_in'])
-            #     st.success("Session state reset except 'user_role' and 'logged_in'")
+            if st.button("reset state"):
+                reset_session_state(['user_role', 'logged_in'])
+                st.success("Session state reset except 'user_role' and 'logged_in'")
 
             if st.button("Generate Report"):
-                reset_transaction_state()  # Clear previous transaction data
+                st.session_state.current_transactions = None
+                # reset_transaction_state() 
                 
                 from customers import customers
                 from transactions import GetTransactions
@@ -178,31 +182,52 @@ def main():
                     
                 if "Transactions" in report_type:
                     customers.refreshCustomerAccounts(customerId)
-                    transactions = GetTransactions.getCustomerTrans(customerId, UnixStart, UnixEnd)
-                    transactions = transactions['transactions']
+                    # Get fresh transactions
+                    new_transactions = GetTransactions.getCustomerTrans(customerId, UnixStart, UnixEnd)
+                    # Store only the transactions part in session state
+                    st.session_state.current_transactions = new_transactions['transactions']
+                    
                     fundName = mapping_dict[0]["FUND_NAME"]
                     fileName = f"{fundName}_{end_time[5:10]}_transactions"
                     
-                    # Store current transactions in session state
-                    st.session_state['current_transactions'] = transactions
-                    
-                    if "Allvue" in database1:
-                        transactionsConv = GetTransactions.convertTransAllvue(transactions, mapping_dict)
-                        st.write(transactionsConv)
-                        convertToExcel.TransToExcel(transactionsConv, fileName)
-                        database.log_user_login(user_role, transactions="Allvue")
-                    if "Geneva" in database1:
-                        if "REC" in gen_report_type:
-                            transactionsConv = GetTransactions.convertTransREC(transactions, mapping_dict)  
+                    # Use the stored transactions for conversion
+                    if st.session_state.current_transactions is not None:
+                        if "Allvue" in database1:
+                            transactionsConv = GetTransactions.convertTransAllvue(
+                                st.session_state.current_transactions, 
+                                mapping_dict
+                            )
+                            st.write(transactionsConv)
                             convertToExcel.TransToExcel(transactionsConv, fileName)
-                            database.log_user_login(user_role, transactions="Geneva Rec") 
-                        if "ART" in gen_report_type:
-                            transactionsConv = GetTransactions.convertTransART(transactions, mapping_dict)  
-                            convertToExcel.TransToExcelART(transactionsConv, fileName)
-                            database.log_user_login(user_role, transactions="Geneva ART")
+                            database.log_user_login(user_role, transactions="Allvue")
+                            
+                        if "Geneva" in database1:
+                            if "REC" in gen_report_type:
+                                transactionsConv = GetTransactions.convertTransREC(
+                                    st.session_state.current_transactions, 
+                                    mapping_dict
+                                )
+                                convertToExcel.TransToExcel(transactionsConv, fileName)
+                                database.log_user_login(user_role, transactions="Geneva Rec")
+                                
+                            if "ART" in gen_report_type:
+                                transactionsConv = GetTransactions.convertTransART(
+                                    st.session_state.current_transactions, 
+                                    mapping_dict
+                                )
+                                convertToExcel.TransToExcelART(transactionsConv, fileName)
+                                database.log_user_login(user_role, transactions="Geneva ART")
 
-                # Clear any previous download buttons before displaying new ones
+                # Display download buttons after processing
                 statements.display_download_buttons()
+
+    with st.expander("Debug Transaction State"):
+        st.write("Current Transactions in State:", 
+                "None" if st.session_state.current_transactions is None 
+                else f"Contains {len(st.session_state.current_transactions)} transactions")
+        if st.button("Clear Transaction State"):
+            st.session_state.current_transactions = None
+            st.success("Transaction state cleared")    
     
     if taskbar == "Institutions":
         left_col, main_col, right_col = st.columns([1, 3, 1])
