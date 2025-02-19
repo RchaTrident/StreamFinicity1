@@ -214,7 +214,7 @@ def main():
                                     st.session_state.current_transactions, 
                                     mapping_dict
                                 )
-                                convertToExcel.TransToExcel(transactionsConv, fileName)
+                                convertToExcel.TransToExcelREC(transactionsConv, fileName)
                                 database.log_user_login(user_role, transactions="Geneva Rec")
                                 
                             if "ART" in gen_report_type:

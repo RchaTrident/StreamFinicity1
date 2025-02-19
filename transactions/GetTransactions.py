@@ -85,7 +85,6 @@ def convertTransAllvue(arr, mapping_dict):
             res['External Document No.'] = ''
             res['Account Type'] = 'G/L Account'
             
-            
             res['Bal. Account No.'] = BankNumber
             #name of the type of transaction
             # res['Account No.'] = accountBankLast4[FundName][aid]
