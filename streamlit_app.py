@@ -143,6 +143,11 @@ def main():
 
             customerId = mapping_dict[0]["CUSTOMER_ID"]
 
+            if st.button("TEMPORARY TESTING CUSTOMER REFRESH"):
+                from customers import customers
+                st.write(customers.refreshCustomerAccounts(7030748192))
+
+
             if st.button("Generate Cashflows Report"):
                 query = f"SELECT ACCOUNT_ID FROM {fund_name}" 
                 account_mapping_df = database.run_query(query)

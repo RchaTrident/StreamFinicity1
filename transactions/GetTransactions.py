@@ -24,9 +24,9 @@ def getCustomerTrans(customerId, fromDate, toDate):
      
     response = requests.get(url=f"{auth['url']}/aggregation/v3/customers/{customerId}/transactions", headers=auth['headers'], params=params)
     st.write(f"{auth['url']}/aggregation/v3/customers/{customerId}/transactions")
-    print(response)
+    # print(response)
     json_data = json.loads(response.text)
-    print(json_data, "jSON DATA")
+    # print(json_data, "jSON DATA")
     return json_data
 
 

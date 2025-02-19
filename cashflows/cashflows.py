@@ -33,7 +33,7 @@ def makeConsumer(customerId, fundName):
             }
     response = requests.post(url = f"{auth['url']}/decisioning/v1/customers/{customerId}/consumer", headers = auth['headers'], json=body)
     json_data = json.dumps(response.text)
-    print(json_data, "consumer data")
+    # print(json_data, "consumer data")
     return json_data
 
 def getConsumer(customerId):
@@ -60,7 +60,7 @@ def cashflowAna(customerId, userType,fromDate, accounts):
 
             }
     response= requests.post(url = f"{auth['url']}/decisioning/v2/customers/{customerId}/reports/cashflow-analytics/userTypes/{userType}", headers = auth['headers'], json=body, )
-    print(response)
+    # print(response)
     json_data = json.dumps(response.text)
     return json_data
 
