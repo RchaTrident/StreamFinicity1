@@ -292,7 +292,7 @@ def main():
             st.title("Add new customer")
 
             from customers import customers
-            
+            from accounts import accounts
             ClientName = st.text_input("Type client's name here. Ex: ExampleFundPartnersLLC.", "ExampleFundPartnersLLC")
             firstName = st.text_input("First name of the client or owner of fund. Ex: John", "John")
             lastName = st.text_input("Last name of the client or owner of fund. Ex: Jingleheimer", "Jingleheimer")
@@ -348,6 +348,8 @@ def main():
 
             if st.button("Get Customer Accounts"):
                 connect_link_data = customers.getCustomerAccounts(customerId)
+                simple_link_data = accounts.getCustomerAccountSimple(customerId)
+                st.write(simple_link_data)
                 organizedAccounts = customers.filter_and_organize_data(connect_link_data)
                 df = pd.DataFrame(organizedAccounts)
                 st.dataframe(df)

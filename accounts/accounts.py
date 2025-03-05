@@ -7,6 +7,8 @@ sys.path.append('/workspaces/StreamFinicity1')
 import pandas as pd
 import json
 import io
+from datetime import datetime
+from collections import Counter
 
 token = get_token()
 
@@ -24,6 +26,53 @@ def getCustomerAccounts(customerId):
     json_data = json.loads(response.text)
     return json.dumps(json_data)
 
+#we use the simple to get the status code of which particular accounts are failing
+def getCustomerAccountSimple(customerId):
+    response = requests.get(url=f"{auth['url']}/aggregation/v1/customers/{customerId}/accounts/simple", headers=auth['headers'])
+    json_data = json.loads(response.text)
+    accounts = json_data.get('accounts', [])
+    column_mapping = {
+        'aggregationStatusCode': 'Aggregation',
+        'customerId': 'CustomerId',
+        'institutionId': 'InstitutionId',
+        'aggregationSuccessDate': 'Aggregated Success Date',
+        'aggregationAttemptDate': 'Aggregated Attempt Date',
+        'createdDate': 'Account Creation Date',
+        'linkedAccountDate': 'Account First Link',
+        'institutionLoginId': 'InstitutionLoginId',
+        'accountNumberDisplay': 'Bank Last 4',
+        'name': 'Name',
+        'status': 'Status'
+    }
+    
+    df = pd.DataFrame(accounts)
+    available_columns = [col for col in column_mapping.keys() if col in df.columns]
+    df = df[available_columns]
+    
+    rename_mapping = {k: column_mapping[k] for k in available_columns}
+    df = df.rename(columns=rename_mapping)
+    
+    date_columns = [
+        'Aggregated Success Date', 
+        'Aggregated Attempt Date', 
+        'Account Creation Date', 
+        'Account First Link'
+    ]
+    
+    for col in date_columns:
+        if col in df.columns:
+            df[col] = df[col].apply(
+                lambda x: datetime.fromtimestamp(x).strftime('%d %b %Y %H:%M:%S') if pd.notnull(x) and x else ''
+            )
+    
+    if 'Aggregation' in df.columns:
+        status_counts = Counter(df['Aggregation'])
+        status_counters = {f"{code}Counter": count for code, count in status_counts.items() if code != 0}
+        
+        for code, count in status_counters.items():
+            df[code] = count
+    
+    return df
 
 def process_account_positions(customer_accounts):
     """
