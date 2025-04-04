@@ -26,11 +26,12 @@ def getCustomerTrans(customerId, fromDate, toDate):
     st.write(f"{auth['url']}/aggregation/v3/customers/{customerId}/transactions")
     # print(response)
     json_data = json.loads(response.text)
-    # print(json_data, "jSON DATA")
+    st.dataframe(json_data)
     return json_data
 
 
 def convertTransAllvue(arr, mapping_dict):
+    st.write("mapping dict", mapping_dict)
     if len(arr) > 0:
         keys_to_keep = {'amount', 'accountId', 'description', 'memo', 'transactionDate'}
         for index, j in enumerate(arr):
@@ -55,7 +56,7 @@ def convertTransAllvue(arr, mapping_dict):
                 # st.write("this is the ACCOUNT_ID",i["ACCOUNT_ID"], "and this is the res account_id", str(res["accountId"]))
                 if i["ACCOUNT_ID"] == str(res["accountId"]):
                     TableDict = i
-                    # st.write(TableDict, "THE TABLE DICT")
+                    # st.write(TableDict, "THE TABLE DICT_____________")
 
             res['Amount'] = res['amount']
             res["Amount (CCY)"] = res['amount']
@@ -133,6 +134,90 @@ def convertTransAllvue(arr, mapping_dict):
         exit()
     # st.write(final[:50], "this is final")
     return final
+
+# def convertTransAllvue(arr, mapping_dict):
+#     if len(arr) > 0:
+#         keys_to_keep = {'amount', 'accountId', 'description', 'memo', 'transactionDate'}
+#         final = []
+#         for index, j in enumerate(arr):
+#             if len(arr) == 0:
+#                 st.write("there are no transactions this timespan")
+#                 return
+#             i = j.copy()
+    
+#             categorization = i.pop("categorization")
+#             i.update(categorization)
+
+#             res = {p: i[p] for p in i if p in keys_to_keep}
+
+#             skip_values = ["Sweep Repo Interest", "SWEEP TO TREAS REPO I", "Sweep Repo Maturity"]
+#             if 'memo' in res and res['memo'] in skip_values:
+#                 continue
+#             docNo = "000000"
+#             newNo = str(int(docNo) + index + 1).zfill(len(docNo))
+
+#             res['Amount'] = res['amount']
+#             res["Amount (CCY)"] = res['amount']
+#             res["Amount (BCY)"] = res['amount']
+#             res['Amount (LCY)'] = res.pop('amount')
+#             res['Company Type'] = 'Fund'
+#             res["Security Description"] = ''
+#             res["Lot No."] = ''
+#             res["Due from gp Code"] = ''
+#             res["Due to master Code"] = ''
+#             res["SCY Code"] = ''
+#             res["BCY Code"] = ''
+#             res["ACY Code"] = ''
+#             res['Company Code'] = '[INSERT COMPANY CODE HERE]'
+
+#             res['Posting Date'] = dateConverter(str(res['transactionDate']))
+#             res['Document Date'] = dateConverter(str(res.pop('transactionDate')))
+#             res['Document Type'] = ''
+#             res['Document No.'] = f'{res["Company Code"]}_Q2_{newNo}'
+#             res['External Document No.'] = ''
+#             res['Account Type'] = 'G/L Account'
+            
+#             res['Bal. Account No.'] = '[INSERT BANK NUMBER HERE]'
+#             res['Account No.'] = '[INSERT GL/ACCOUNT HERE]'
+#             res.pop("accountId")
+#             res['Account Name'] = ''
+#             description = res.pop('description', '')
+#             limited_desc = description[:250]
+#             res['Description'] = limited_desc
+#             res['Security No.'] = ''
+#             res['Amounts Relation Type'] = 'Exchange Rate'
+#             res['Quantity'] = ''
+#             res['Currency Code'] = 'USD'
+#             res['Exchange Rate Amount'] = '1.00'
+#             res['Relational Exch. Rate Amount'] = '1.00'
+#             res['Amount (SCY)'] = '0'
+#             res['CCY Code'] = 'USD'
+#             res['Exchange Rate Amount1'] = '1.00'
+#             res['Relational Exch. Rate Amount1'] = '1.00'
+#             res['Exchange Rate Amount2'] = ''
+#             res['Relational Exch. Rate Amount2'] = ''
+#             res['Exchange Rate Amount3'] = ''
+#             res['Relational Exch. Rate Amount3'] = ''
+#             res['Exchange Rate Amount4'] = ''
+#             res['Relational Exch. Rate Amount4'] = ''
+#             res['Amount (ACY)'] = '0.00'
+#             res['Bal. Account Type'] = 'Bank Account'
+            
+#             res['Allocation Rule Code'] = 'INSERT ALLOCATION RULE HERE'
+#             res['Allocation Rule Description'] = ''
+#             res['Deal Code'] = ''
+#             res['Deal Description'] = ''
+#             memo = res.pop('memo', '')
+#             limited_memo = memo[:250]
+#             res['Comment'] = limited_memo if 'memo' in res else ""
+#             res['Business Unit Code'] = ''
+#             final.append(res)
+#     else:
+#         st.write("no transactions this period")
+#         exit()
+#     return final
+
+
 #ForGenevaREC
 @st.cache_data
 def convertTransREC(arr, mapping_dict):

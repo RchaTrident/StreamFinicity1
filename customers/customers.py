@@ -92,13 +92,15 @@ def getCustomerAccounts(customerId):
 def filter_and_organize_data(data):
     filtered_data = []
     for item in data:
+        print(item)
         filtered_item = {
-            "id": item["id"],
-            "number": item["number"],
-            "accountNumberDisplay": item["accountNumberDisplay"],
-            "name": item["name"],
-            "type": item["type"],
-            "institutionId": item["institutionId"]
+            "ACCOUNT_ID": item["id"],
+            "BANKNUMBER": item["number"],
+            "ACCOUNTBANKLAST4": item["accountNumberDisplay"],
+            "ACCOUNTCOMPANYCODE": item["name"],
+            "FUNDCODES": item["name"],
+            "FUNDSTRUCTURE" : item["name"],
+            "CUSTOMER_ID" : item["customerId"]
         }
         filtered_data.append(filtered_item)
     # print(filtered_data)

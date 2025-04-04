@@ -118,14 +118,16 @@ def main():
             mapping_df = database.run_query(query)
             mapping_dict = mapping_df.to_dict(orient='records')
             today = datetime.now(timezone.utc)
-            first_day_last_month = (today.replace(day=1) - timedelta(days=1)).replace(day=1)
-            last_day_last_month = today.replace(day=1) - timedelta(days=1)
-
-            start_time_default = first_day_last_month.strftime("%Y-%m-%d 00:00:00 UTC")
-            end_time_default = last_day_last_month.strftime("%Y-%m-%d 23:59:59 UTC")
-
-            start_date = st.date_input("Start Date", value=first_day_last_month)
-            end_date = st.date_input("End Date", value=last_day_last_month)
+            
+            # Commented out old code
+            # first_day_last_month = (today.replace(day=1) - timedelta(days=1)).replace(day=1)
+            # last_day_last_month = today.replace(day=1) - timedelta(days=1)
+            # start_time_default = first_day_last_month.strftime("%Y-%m-%d 00:00:00 UTC")
+            # end_time_default = last_day_last_month.strftime("%Y-%m-%d 23:59:59 UTC")
+            
+            # New code to use exact selected date
+            start_date = st.date_input("Start Date", value=today)
+            end_date = st.date_input("End Date", value=today)
 
             start_time = f"{start_date.strftime('%Y-%m-%d')} 00:00:00 UTC"
             end_time = f"{end_date.strftime('%Y-%m-%d')} 23:59:59 UTC"
@@ -348,8 +350,8 @@ def main():
 
             if st.button("Get Customer Accounts"):
                 connect_link_data = customers.getCustomerAccounts(customerId)
-                simple_link_data = accounts.getCustomerAccountSimple(customerId)
-                st.write(simple_link_data)
+                # simple_link_data = accounts.getCustomerAccountSimple(customerId)
+                # st.write(simple_link_data, "simple data")
                 organizedAccounts = customers.filter_and_organize_data(connect_link_data)
                 df = pd.DataFrame(organizedAccounts)
                 st.dataframe(df)
